@@ -127,6 +127,20 @@ export const editGroup: Command = async (ctx) => {
   show(g, () => console.log(`updated ${g.name} (${g.currencyCode})`));
 };
 
+export const removeGroup: Command = async (ctx) => {
+  const { client, show, group } = ctx;
+  const name = group();
+  // Counted before the delete, so the summary can say what actually went.
+  const count = (await client.transactions(name)).length;
+  const gone = await client.deleteGroup(name);
+  show({ deleted: gone, transactions: count }, () =>
+    console.log(
+      `deleted group ${gone.name} — ${count} transaction(s) and ` +
+        `${gone.members.length} member(s) went with it`,
+    ),
+  );
+};
+
 export const addMember: Command = async (ctx) => {
   const { client, flags, group, show } = ctx;
   if (!flags.name) fail("--name is required");

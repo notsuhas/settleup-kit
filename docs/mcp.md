@@ -6,8 +6,12 @@ Seven tools over a live Settle Up account: `list_groups`, `group_balances`,
 
 Structure — `create_group`, `edit_group`, `add_member`, `edit_member` — is
 opt-in behind `SETTLEUP_MCP_ALLOW_STRUCTURE=1`. Adding someone to a group
-shifts every balance in it, and a new group is a container that can only be
-deleted from the app, so both are a different kind of act from recording a meal.
+shifts every balance in it, which is a different kind of act from recording a
+meal.
+
+`delete_group` is a flag again, `SETTLEUP_MCP_ALLOW_DELETE=1`. It takes every
+transaction in the group with it and Settle Up has no undo, so it is the one
+thing here that cannot be walked back.
 
 ## Local (Claude Desktop, Claude Code, Cursor)
 

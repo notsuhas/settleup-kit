@@ -40,6 +40,8 @@ export interface SettleUp {
   createGroup(input: NewGroup): Promise<Group>;
   /** Rename a group, change its currency, or toggle debt minimisation. */
   editGroup(group: string, patch: GroupPatch): Promise<Group>;
+  /** Delete a group and every transaction in it. There is no undo. */
+  deleteGroup(group: string): Promise<Group>;
   transactions(group: string, query?: TransactionQuery): Promise<Transaction[]>;
   transaction(group: string, id: string): Promise<Transaction>;
   /** The settlement edges Settle Up computed: who owes whom, in the group currency. */

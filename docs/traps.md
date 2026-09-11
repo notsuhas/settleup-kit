@@ -149,6 +149,22 @@ own `permissions` node you lose read access to the rest, so a half-built group
 becomes unreachable rather than cleanable — build it in the right order or not
 at all.
 
+**Deleting** a group is five deletes, and the order is the whole trick:
+
+```
+transactions/<id>  →  members/<id>  →  groups/<id>  →  userGroups/<uid>/<id>
+                                                    →  permissions/<id>   ← last
+```
+
+`permissions/<id>/<uid>` is what authorises every other delete, so removing it
+first strands the rest: the group survives with nobody able to read or remove
+it, and re-granting yourself permission on a group that already exists is
+refused. That is not theoretical — it is how this ordering was learned, and the
+orphan is still there.
+
+`debts/<id>` is server-owned and refuses a client delete. Skip it; it stops
+mattering once the transactions are gone.
+
 **Editing** an existing group needs none of this: a `PATCH` on `groups/<id>`
 with a name, `convertedToCurrency` or `minimizeDebts` works with level 30, and
 shows up in the app immediately. Use `PATCH`, not `PUT` — `lastChanged` is

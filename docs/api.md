@@ -115,4 +115,6 @@ you need them:
 import { createClient, Db } from "@notsuhas/settleup-kit";
 ```
 
-Deleting a group is not covered either — do that in the app.
+Deleting a group **is** covered, but the order matters: `permissions` must go
+last, because it is what authorises every other delete. See
+[traps.md](traps.md).

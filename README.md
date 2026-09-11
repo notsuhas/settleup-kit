@@ -88,6 +88,7 @@ Groups and members:
 settleup new-group --name "Lisbon 2026" --currency EUR --members "Alice,Bob"
 settleup add-member --group "Lisbon 2026" --name Carol
 settleup edit-group --group "Lisbon 2026" --name "Lisbon trip"
+settleup rm-group   --group "Lisbon 2026"   # and every transaction in it
 ```
 
 The first member is you — it is the one expenses default to being paid by.
@@ -99,7 +100,9 @@ Settle Up's sandbox project instead of your real account.
 
 Seven tools: `list_groups`, `group_balances`, `search_transactions`,
 `add_expense`, `add_transfer`, `edit_transaction`, `delete_transaction`.
-Creating groups and members is opt-in behind `SETTLEUP_MCP_ALLOW_STRUCTURE=1`.
+Creating groups and members is opt-in behind `SETTLEUP_MCP_ALLOW_STRUCTURE=1`;
+`delete_group` needs `SETTLEUP_MCP_ALLOW_DELETE=1` on top, because it takes
+every transaction in the group with it.
 
 ```json
 {
@@ -184,6 +187,7 @@ This kit refuses an empty description locally, before the request goes out.
 | `SETTLEUP_CONFIG_DIR`                  | where the token cache lives          |
 | `MCP_TOKEN` · `MCP_PORT` · `MCP_HOST`  | HTTP MCP transport                   |
 | `SETTLEUP_MCP_ALLOW_STRUCTURE`         | MCP: group and member writes         |
+| `SETTLEUP_MCP_ALLOW_DELETE`            | MCP: `delete_group`                  |
 
 The token cache is written `0600` under `~/.config/settleup-kit/`.
 

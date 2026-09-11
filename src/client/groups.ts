@@ -94,6 +94,34 @@ export function createGroupApi({ db, uid, cache, group }: GroupDeps) {
     },
 
     /**
+     * Delete a group and everything in it.
+     *
+     * The order is load-bearing. `permissions/<id>/<uid>` is what authorises
+     * every other write, so it goes **last** — remove it first and the rest
+     * becomes unreachable, leaving a group nobody can see or clean up. That is
+     * not hypothetical; it is how this was found.
+     *
+     * `/debts/<id>` is deliberately not touched: it is server-owned and refuses
+     * a client delete, and it stops mattering once the transactions are gone.
+     */
+    async deleteGroup(value: string): Promise<Group> {
+      const g = await group(value);
+      const database = await db();
+      const user = await uid();
+
+      await database.delete(`transactions/${g.id}`);
+      await database.delete(`members/${g.id}`);
+      await database.delete(`groups/${g.id}`);
+      await database.delete(`userGroups/${user}/${g.id}`);
+      await database.delete(`permissions/${g.id}`);
+
+      cache.invalidate("groups");
+      cache.invalidate(`tx:${g.id}`);
+      cache.invalidate(`debts:${g.id}`);
+      return g;
+    },
+
+    /**
      * Rename a group, change its currency, or toggle debt minimisation.
      *
      * PATCH rather than PUT: `lastChanged` is server-managed and a group also

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.2 — 2026-09-11
+
+- `deleteGroup`, `settleup rm-group`, and an MCP `delete_group` behind
+  `SETTLEUP_MCP_ALLOW_DELETE=1`. It takes every transaction in the group with
+  it, which is why it is a flag of its own.
+- Corrected the docs, which claimed a group could only be deleted from the app.
+  It cannot be deleted in one call, but five deletes in the right order do it —
+  `permissions` last, because it authorises the other four. Getting that order
+  wrong strands the group where nobody can reach it.
+
 ## 0.1.1 — 2026-09-11
 
 - Replaced the real names, group names and live database ids that had been used

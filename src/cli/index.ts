@@ -114,6 +114,7 @@ const COMMANDS: Record<string, Command> = {
 
   "new-group": write.newGroup,
   "edit-group": write.editGroup,
+  "rm-group": write.removeGroup,
   "add-member": write.addMember,
   "edit-member": write.editMember,
 };

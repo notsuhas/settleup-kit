@@ -30,6 +30,7 @@ export const USAGE = `settleup — unofficial Settle Up client
     settleup new-group   --name "Lisbon 2026" --currency EUR \\
                          --members "Alice,Bob"     first member is you
     settleup edit-group  --group "Lisbon 2026" --name "Lisbon trip"
+    settleup rm-group    --group "Lisbon 2026"   deletes its transactions too
     settleup add-member  --group Lisbon --name Carol
     settleup edit-member <name> --group Lisbon [--name …] [--active|--inactive]
 
