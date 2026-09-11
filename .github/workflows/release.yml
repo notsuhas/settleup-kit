@@ -1,0 +1,36 @@
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+  # Required for both trusted publishing and provenance.
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          registry-url: https://registry.npmjs.org
+
+      # Trusted publishing needs npm >= 11.5.1; node 24 ships 11.x, but pin the
+      # floor rather than inherit whatever the image happens to carry.
+      - run: npm install -g npm@latest
+
+      - run: npm ci
+      - run: npm run typecheck && npm run lint && npm test
+
+      # No NODE_AUTH_TOKEN: npm authenticates with this workflow's OIDC identity,
+      # which npmjs.com has to trust (package settings -> trusted publisher).
+      # There is no token to leak or rotate, and 2FA does not apply — which
+      # matters here because npm no longer issues TOTP secrets, and a passkey
+      # cannot answer an OTP prompt from CI.
+      - run: npm publish --provenance --access public

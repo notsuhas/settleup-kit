@@ -1,0 +1,69 @@
+{
+  "name": "@notsuhas/settleup-kit",
+  "version": "0.1.1",
+  "description": "Unofficial Settle Up client, CLI and MCP server. Groups, members, expenses, transfers and debts.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "settleup": "dist/cli/index.js",
+    "settleup-mcp": "dist/mcp/stdio.js",
+    "settleup-mcp-http": "dist/mcp/http.js"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js",
+    "./mcp": "./dist/mcp/server.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "docs",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "bump": "changeset version",
+    "changeset": "changeset",
+    "deadcode": "fallow dead-code",
+    "dev": "tsc --watch",
+    "format": "biome check --write src && prettier --write .",
+    "health": "fallow health",
+    "lint": "biome check src",
+    "mcp": "node dist/mcp/stdio.js",
+    "mcp:http": "node dist/mcp/http.js",
+    "prepare": "tsc",
+    "prepublishOnly": "npm run build",
+    "test": "tsc -p tsconfig.test.json && node --test '.test-build/src/**/__tests__/*.test.js'",
+    "typecheck": "tsc -p tsconfig.test.json --noEmit",
+    "verify": "npm run typecheck && npm run lint && prettier --check . && npm test && fallow dead-code && fallow dupes"
+  },
+  "keywords": [
+    "settleup",
+    "settle-up",
+    "mcp",
+    "model-context-protocol",
+    "cli",
+    "expense-splitting",
+    "firebase"
+  ],
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "zod": "^4.6.2"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.13",
+    "@changesets/cli": "^3.0.2",
+    "@types/node": "^22.20.2",
+    "fallow": "^3.25.0",
+    "prettier": "^3.9.6",
+    "typescript": "^7.0.2"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

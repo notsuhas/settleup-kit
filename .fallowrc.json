@@ -1,0 +1,11 @@
+{
+  "$schema": "https://docs.fallow.tools/schema/fallow.schema.json",
+  "entry": [
+    "src/index.ts",
+    "src/cli/index.ts",
+    "src/mcp/stdio.ts",
+    "src/mcp/http.ts",
+    "src/**/__tests__/*.test.ts"
+  ],
+  "ignorePatterns": [".test-build/**", "dist/**"]
+}

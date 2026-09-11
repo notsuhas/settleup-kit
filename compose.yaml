@@ -1,0 +1,27 @@
+# Minimal self-host of the HTTP MCP server. `docker compose up -d`, then point
+# a client at http://localhost:8791/mcp with the bearer token below.
+services:
+  settleup-mcp:
+    build: .
+    restart: unless-stopped
+    environment:
+      SETTLEUP_EMAIL: ${SETTLEUP_EMAIL:?set this in .env}
+      SETTLEUP_PASSWORD: ${SETTLEUP_PASSWORD:?set this in .env}
+      # The bearer clients must send. Generate with `openssl rand -hex 32`.
+      MCP_TOKEN: ${MCP_TOKEN:?set this in .env}
+      # Settle Up's sandbox project, which is a separate account from yours.
+      # SETTLEUP_ENV: sandbox
+      # Creating groups and members. Off unless you want it: a member change
+      # moves every balance in the group, and a group can only be deleted in
+      # the app.
+      # SETTLEUP_MCP_ALLOW_STRUCTURE: "1"
+    ports:
+      - "8791:8791"
+    volumes:
+      # Holds the cached ID and refresh tokens, so a restart does not sign in
+      # again. Firebase has no device limit, so this is a convenience rather
+      # than a safety measure — but signing in on every restart is still waste.
+      - settleup-token-cache:/config
+
+volumes:
+  settleup-token-cache:

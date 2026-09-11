@@ -1,0 +1,46 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # fallow reads git history for churn signals
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: typecheck
+        run: npm run typecheck
+
+      - name: lint and format (biome owns ts/js/json)
+        run: npm run lint
+
+      - name: format (prettier owns md/yaml)
+        run: npx prettier --check .
+
+      - name: test
+        run: npm test
+
+      - name: build
+        run: npm run build
+
+      # Never a gate: it reports on the shape of the codebase, and a red
+      # dependency graph should not block a correct bug fix.
+      - name: codebase health
+        run: npx fallow
+        continue-on-error: true

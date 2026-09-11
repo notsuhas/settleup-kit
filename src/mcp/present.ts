@@ -1,0 +1,65 @@
+/**
+ * How tool results are shaped for a model, and the input pieces every tool
+ * group shares. Kept apart from the tool definitions so the wording of a result
+ * can change without touching what the tools do.
+ */
+
+import { z } from "zod";
+import { localDay } from "../core/dates.js";
+import type { Group, Member, Transaction } from "../core/types.js";
+
+export const DATE = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "must be YYYY-MM-DD")
+  .describe("YYYY-MM-DD");
+
+export const json = (data: unknown) => ({
+  content: [{ type: "text" as const, text: JSON.stringify(data, null, 1) }],
+});
+
+/** Resolves member ids to the names a person would actually use. */
+export type Naming = (transaction: Transaction) => Record<string, unknown>;
+
+export function naming(group: Group): Naming {
+  const name = (id: string) => group.members.find((m) => m.id === id)?.name ?? id;
+  const who = (list: { memberId: string }[]) => list.map((w) => name(w.memberId));
+
+  return (t) => ({
+    id: t.id,
+    date: localDay(t.dateTime),
+    type: t.type,
+    amount: t.amount,
+    currency: t.currencyCode,
+    purpose: t.purpose,
+    ...(t.category ? { category: t.category } : {}),
+    paidBy: who(t.whoPaid),
+    // Flattened across items: a model wants "who is this for", not the tip line.
+    forWhom: [...new Set(t.items.flatMap((i) => who(i.forWhom ?? [])))],
+    ...(t.items.length > 1 ? { items: t.items.length } : {}),
+  });
+}
+
+export const describeMember = (m: Member) => ({
+  name: m.name,
+  id: m.id,
+  active: m.active,
+});
+
+export const INSTRUCTIONS = `Read and write shared expenses in a live Settle Up account.
+
+Settle Up is organised by **group**. Members, transactions and debts all belong
+to one, and the same person is a different member in each group — so every call
+names a group, and members are named within it. list_groups shows both.
+
+Amounts are always positive. Direction comes from the kind of row:
+- add_expense records money someone spent for the group. It defaults to being
+  paid by you and split equally between every active member.
+- add_transfer records one member paying another back, which settles a debt.
+
+Splitting is the point of the app: if the user records a shared cost without
+saying who it was for, the default is an even split across the group. When it
+is ambiguous whether a cost was shared or personal, ask before writing.
+
+Debts are computed by Settle Up itself and recalculated on every write, so
+group_balances after a write reflects the change. Deleting cannot be undone;
+confirm with the user first.`;
