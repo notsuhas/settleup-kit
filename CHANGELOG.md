@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.3 — 2026-09-11
+
+- **Fixes a session that never refreshed.** The client resolved authentication
+  once and reused it for the life of the process, so anything long-running — an
+  MCP server above all — kept the first ID token it was given. Firebase expires
+  those after an hour, and every request after that failed with
+  `Permission denied` while a perfectly good refresh token sat unused in the
+  cache. The session is resolved per call now.
+
 ## 0.1.2 — 2026-09-11
 
 - `deleteGroup`, `settleup rm-group`, and an MCP `delete_group` behind

@@ -49,15 +49,22 @@ export function createClient(options: ClientOptions = {}): SettleUp {
     options.env ?? ((process.env.SETTLEUP_ENV as SettleUpEnv | undefined) || "live");
   const cache = new Cache((options.cacheSeconds ?? 30) * 1000);
 
-  let session: Promise<{ db: Db; session: Session }> | undefined;
-
-  /** One authentication per client, reused; `authenticate` handles renewal. */
-  function connect(): Promise<{ db: Db; session: Session }> {
-    session ??= authenticate({ ...options, env }).then((s) => ({
-      db: new Db(env, s),
-      session: s,
-    }));
-    return session;
+  /**
+   * Resolve the session per call, never once per client.
+   *
+   * A `Db` captures the ID token it was built with, and a Firebase ID token
+   * lasts an hour. Memoising this made a long-running process — an MCP server,
+   * exactly what this is for — keep using the first token it ever got, and
+   * every request an hour later came back "Permission denied". It survived
+   * every test because a test process is short-lived.
+   *
+   * The cost is a cached-file read: `authenticate` returns immediately when the
+   * token is still good, refreshes only when it is not, and shares one
+   * in-flight renewal between concurrent callers.
+   */
+  async function connect(): Promise<{ db: Db; session: Session }> {
+    const s = await authenticate({ ...options, env });
+    return { db: new Db(env, s), session: s };
   }
 
   async function loadGroups(): Promise<Group[]> {

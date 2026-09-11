@@ -184,3 +184,18 @@ Verified against the live database.
 So the token stays in the URL. Nothing here logs a URL — errors carry only the
 response body and the status — but anything you build on top should keep it
 that way.
+
+## A long-running client must not cache the session
+
+A Firebase ID token lasts an hour. Resolve it once at construction and hold it,
+and a server is fine for an hour and then answers `Permission denied` on every
+request forever — the refresh token sitting in the cache, unused.
+
+This kit had exactly that bug in 0.1.2. It passed every test, because a test
+process lives seconds; it surfaced 73 minutes after the MCP server was
+deployed. Fixed in 0.1.3 by resolving the session per call. That is cheap:
+authentication returns straight away while the token is good, and only touches
+the network when it is not.
+
+The tell is the cache file's mtime. If it still reads the process start time an
+hour later, nothing ever refreshed.
