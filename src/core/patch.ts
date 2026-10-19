@@ -70,10 +70,13 @@ export function applyPatch(
     next.items = items;
   }
 
-  // The server recomputes the rate on write. Keeping the old one would pin a
-  // stale rate to a changed amount or currency — unless it was pinned on
-  // purpose, which `fixedExchangeRate` records.
-  if (!before.fixedExchangeRate) delete next.exchangeRates;
+  // Time and description corrections must preserve the recorded conversion rate.
+  if (
+    !before.fixedExchangeRate &&
+    (patch.amount !== undefined || patch.currencyCode !== undefined)
+  ) {
+    delete next.exchangeRates;
+  }
 
   return next;
 }

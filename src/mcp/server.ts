@@ -18,25 +18,11 @@ import { registerReferenceTools } from "./tools/reference.js";
 import { registerStructureTools, structureAllowed } from "./tools/structure.js";
 import { registerTransactionTools } from "./tools/transactions.js";
 
-/**
- * How long the MCP server reuses a read.
- *
- * Longer than the library default because this process is long-lived and the
- * group list barely changes. Writes invalidate the group they touched, so a
- * stale row is not a risk; the cost is that a change made in the phone app
- * takes a few minutes to show up.
- */
-const CACHE_SECONDS = 300;
-
 export function createMcpServer(options: ClientOptions = {}): McpServer {
   const client: SettleUp = createClient({
-    cacheSeconds: CACHE_SECONDS,
+    cacheSeconds: 0,
     ...options,
   });
-
-  // Warm the group list off the critical path, so the first tool call does not
-  // pay for the login too. Failures are ignored: the real call reports properly.
-  void client.groups().catch(() => {});
 
   const server = new McpServer(
     { name: "settleup", version: "0.1.0" },
