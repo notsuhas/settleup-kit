@@ -210,3 +210,15 @@ send both fields. Date-only calls keep their existing behavior; omitted fields
 on edits preserve the saved time. The CLI equivalent is
 `--date-time '2026-10-19T11:10:00+09:00'`. MCP transaction results include
 `dateTime` when a timestamp is available.
+
+### npm trusted publishing setup
+
+The release workflow uses GitHub OIDC rather than `NPM_TOKEN`. Configure a
+trusted publisher on the npm package for this exact GitHub repository and
+`release.yml`, with direct publishing allowed and no environment restriction.
+Keep `repository.url` aligned with the repository. A newly configured publisher
+must complete a successful publish within two days or npm expires it.
+
+If publishing returns E404 while package reads work, check the package's trusted
+publisher configuration and repository metadata before replacing tokens. Passing
+CI does not verify npm publish authorization; verify the release job itself.
