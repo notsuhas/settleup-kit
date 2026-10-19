@@ -98,3 +98,9 @@ test("an edit cannot sneak past the rules the add path enforces", () => {
   assert.throws(() => applyPatch(live, { amount: -100 }, trip), SettleUpError);
   assert.throws(() => applyPatch(live, { amount: 0 }, trip), SettleUpError);
 });
+
+test("timestamp and description edits preserve the recorded exchange rates", () => {
+  for (const patch of [{ dateTime: "2026-10-19T11:10:00+09:00" }, { purpose: "Orange ice bars" }]) {
+    assert.deepEqual(applyPatch(live, patch, trip).exchangeRates, live.exchangeRates);
+  }
+});
