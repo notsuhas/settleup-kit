@@ -14,6 +14,8 @@ export interface Flags {
   category?: string;
   currency?: string;
   date?: string;
+  /** ISO timestamp with Z or an explicit UTC offset; mutually exclusive with date. */
+  "date-time"?: string;
   "paid-by"?: string;
   for?: string;
   to?: string;

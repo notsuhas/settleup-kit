@@ -41,6 +41,7 @@ export const addExpense: Command = async (ctx) => {
       forWhom: ctx.list(flags.for),
       category: flags.category,
       currencyCode: flags.currency,
+      dateTime: flags["date-time"],
       date: flags.date,
     }),
   });
@@ -60,6 +61,7 @@ export const addTransfer: Command = async (ctx) => {
       from: flags.from,
       purpose: flags.purpose,
       currencyCode: flags.currency,
+      dateTime: flags["date-time"],
       date: flags.date,
     }),
   });
@@ -79,6 +81,7 @@ export const edit: Command = async (ctx) => {
     paidBy: ctx.list(flags["paid-by"]),
     forWhom: ctx.list(flags.for),
     currencyCode: flags.currency,
+    dateTime: flags["date-time"],
     date: flags.date,
   });
   if (Object.keys(patch).length === 0) fail("nothing to change — pass at least one field");

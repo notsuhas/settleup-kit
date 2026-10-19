@@ -3,7 +3,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { SettleUp } from "../../client/api.js";
-import { DATE, json, naming } from "../present.js";
+import { DATE, DATE_TIME, json, naming } from "../present.js";
 
 const GROUP = z.string().describe("Group name from list_groups");
 
@@ -67,6 +67,7 @@ export function registerTransactionTools(server: McpServer, client: SettleUp): v
         category: z.string().optional().describe("An emoji, as Settle Up uses for categories"),
         currencyCode: z.string().optional().describe("ISO code. Defaults to the group currency."),
         date: DATE.optional().describe("Defaults to now"),
+        dateTime: DATE_TIME.optional(),
       },
     },
     async ({ group, ...input }) => {
@@ -93,6 +94,7 @@ export function registerTransactionTools(server: McpServer, client: SettleUp): v
         purpose: z.string().optional().describe('Defaults to "Debt settlement"'),
         currencyCode: z.string().optional(),
         date: DATE.optional(),
+        dateTime: DATE_TIME.optional(),
       },
     },
     async ({ group, ...input }) => {
@@ -121,6 +123,7 @@ export function registerTransactionTools(server: McpServer, client: SettleUp): v
         forWhom: z.array(z.string()).min(1).optional().describe("Replaces the existing split"),
         currencyCode: z.string().optional(),
         date: DATE.optional(),
+        dateTime: DATE_TIME.optional(),
       },
     },
     async ({ group, id, ...patch }) => {

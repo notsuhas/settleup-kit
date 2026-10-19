@@ -200,3 +200,13 @@ The token cache is written `0600` under `~/.config/settleup-kit/`.
 ## Licence
 
 MIT. Use it against your own account.
+
+## Transaction times
+
+Write tools accept optional `dateTime` instead of `date`, for example
+`"2026-10-19T11:10:00+09:00"` for a receipt printed at 11:10 in Japan. Use a
+full ISO timestamp with seconds and either `Z` or an explicit UTC offset. Do not
+send both fields. Date-only calls keep their existing behavior; omitted fields
+on edits preserve the saved time. The CLI equivalent is
+`--date-time '2026-10-19T11:10:00+09:00'`. MCP transaction results include
+`dateTime` when a timestamp is available.

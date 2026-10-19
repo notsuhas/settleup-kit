@@ -8,7 +8,7 @@
  * testing rather than inlining into the client.
  */
 
-import { when } from "./dates.js";
+import { transactionTime, when } from "./dates.js";
 import { positiveAmount } from "./money.js";
 import type { RawTransaction } from "./normalise.js";
 import { findMember } from "./query.js";
@@ -42,7 +42,8 @@ export function applyPatch(
 
   if (patch.currencyCode !== undefined) next.currencyCode = patch.currencyCode;
 
-  if (patch.date !== undefined) next.dateTime = when(patch.date);
+  if (patch.dateTime !== undefined) Object.assign(next, transactionTime(patch));
+  else if (patch.date !== undefined) next.dateTime = when(patch.date);
 
   // An empty list would leave the row paid by nobody or owed by nobody, which
   // breaks the server's settlement for the whole group. The add path refuses

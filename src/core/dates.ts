@@ -40,6 +40,42 @@ export function when(date?: string): number {
   return parsed;
 }
 
+/** Explicit receipt time takes precedence only when no date was supplied. */
+export function transactionTime(input: { date?: string; dateTime?: string }): {
+  dateTime: number;
+  timezone: string;
+} {
+  if (input.dateTime !== undefined) {
+    if (input.date !== undefined) throw new SettleUpError("pass date or dateTime, not both");
+    const value = input.dateTime;
+    if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(value)) {
+      throw new SettleUpError("dateTime must be an ISO timestamp with Z or a UTC offset");
+    }
+    const at = when(value);
+    const zone = value.endsWith("Z") ? "+00:00" : value.slice(-6);
+    if (
+      Math.abs(Number(zone.slice(1, 3))) > 23 ||
+      Number(zone.slice(4)) > 59 ||
+      new Date(at + offsetMinutes(zone) * 60000).toISOString().slice(0, 19) !== value.slice(0, 19)
+    ) {
+      throw new SettleUpError("dateTime is not a valid calendar timestamp");
+    }
+    return { dateTime: at, timezone: zone };
+  }
+  const at = when(input.date);
+  return { dateTime: at, timezone: timezoneAt(at) };
+}
+
+function offsetMinutes(zone: string): number {
+  return (Number(zone.slice(1, 3)) * 60 + Number(zone.slice(4))) * (zone[0] === "-" ? -1 : 1);
+}
+
+/** Present the instant in the offset saved by its creator, independent of the server. */
+export function recordedTime(ms: number, zone?: string): string {
+  if (!zone || !/^[+-]\d{2}:\d{2}$/.test(zone)) return new Date(ms).toISOString();
+  return new Date(ms + offsetMinutes(zone) * 60000).toISOString().slice(0, -1) + zone;
+}
+
 /** True for a bare `YYYY-MM-DD`, which names a whole day rather than an instant. */
 export const isBareDate = (value: string): boolean => /^\d{4}-\d{2}-\d{2}$/.test(value);
 

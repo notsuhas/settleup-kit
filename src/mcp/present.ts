@@ -5,13 +5,19 @@
  */
 
 import { z } from "zod";
-import { localDay } from "../core/dates.js";
+import { recordedTime } from "../core/dates.js";
 import type { Group, Member, Transaction } from "../core/types.js";
 
 export const DATE = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, "must be YYYY-MM-DD")
   .describe("YYYY-MM-DD");
+
+export const DATE_TIME = z.iso
+  .datetime({ offset: true })
+  .describe(
+    "ISO timestamp with Z or UTC offset, e.g. 2026-10-19T11:10:00+09:00. Do not combine with date.",
+  );
 
 export const json = (data: unknown) => ({
   content: [{ type: "text" as const, text: JSON.stringify(data, null, 1) }],
@@ -26,7 +32,8 @@ export function naming(group: Group): Naming {
 
   return (t) => ({
     id: t.id,
-    date: localDay(t.dateTime),
+    date: recordedTime(t.dateTime, t.timezone).slice(0, 10),
+    dateTime: recordedTime(t.dateTime, t.timezone),
     type: t.type,
     amount: t.amount,
     currency: t.currencyCode,
