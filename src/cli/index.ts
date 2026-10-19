@@ -26,6 +26,7 @@ const options = {
   category: { type: "string" },
   currency: { type: "string" },
   date: { type: "string" },
+  "date-time": { type: "string" },
   "paid-by": { type: "string" },
   for: { type: "string" },
   to: { type: "string" },

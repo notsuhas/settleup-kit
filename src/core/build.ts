@@ -12,7 +12,7 @@
  * recalculated server-side on every write, so nothing here touches `/debts`.
  */
 
-import { timezoneAt, when } from "./dates.js";
+import { transactionTime } from "./dates.js";
 import { positiveAmount } from "./money.js";
 import { findMember } from "./query.js";
 import type { Group, Member, NewExpense, NewTransfer, Weighted } from "./types.js";
@@ -97,14 +97,13 @@ export function buildExpense(group: Group, input: NewExpense): TransactionPayloa
     );
   }
 
-  const at = when(input.date);
+  const time = transactionTime(input);
   return {
     type: "expense",
     purpose: purpose(input.purpose),
     ...(input.category ? { category: input.category } : {}),
     currencyCode: input.currencyCode ?? group.currencyCode,
-    dateTime: at,
-    timezone: timezoneAt(at),
+    ...time,
     fixedExchangeRate: false,
     whoPaid: evenly(payers),
     items: [{ amount: positiveAmount(input.amount), forWhom: evenly(beneficiaries) }],
@@ -117,13 +116,12 @@ export function buildTransfer(group: Group, input: NewTransfer): TransactionPayl
   if (!from || !to) throw new SettleUpError("a transfer needs both a payer and a recipient");
   if (from.id === to.id) throw new SettleUpError("a transfer needs two different members");
 
-  const at = when(input.date);
+  const time = transactionTime(input);
   return {
     type: "transfer",
     purpose: purpose(input.purpose, DEBT_SETTLEMENT),
     currencyCode: input.currencyCode ?? group.currencyCode,
-    dateTime: at,
-    timezone: timezoneAt(at),
+    ...time,
     fixedExchangeRate: false,
     whoPaid: [{ memberId: from.id, weight: "1" }],
     items: [

@@ -135,6 +135,8 @@ export interface NewExpense {
   currencyCode?: string;
   /** ISO date or YYYY-MM-DD. Defaults to now. */
   date?: string;
+  /** ISO timestamp with Z or an explicit UTC offset; mutually exclusive with date. */
+  dateTime?: string;
 }
 
 export interface NewTransfer {
@@ -149,6 +151,8 @@ export interface NewTransfer {
   purpose?: string;
   currencyCode?: string;
   date?: string;
+  /** ISO timestamp with Z or an explicit UTC offset; mutually exclusive with date. */
+  dateTime?: string;
 }
 
 /** A change to an existing transaction. Omitted fields are carried over from the live row. */
@@ -160,6 +164,8 @@ export interface TransactionPatch {
   forWhom?: string[];
   currencyCode?: string;
   date?: string;
+  /** ISO timestamp with Z or an explicit UTC offset; mutually exclusive with date. */
+  dateTime?: string;
 }
 
 export interface TransactionQuery {
