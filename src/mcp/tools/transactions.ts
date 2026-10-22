@@ -6,6 +6,12 @@ import type { SettleUp } from "../../client/api.js";
 import { DATE, DATE_TIME, json, naming } from "../present.js";
 
 const GROUP = z.string().describe("Group name from list_groups");
+const SHARES = z
+  .record(z.string(), z.union([z.number().nonnegative(), z.string()]))
+  .optional()
+  .describe(
+    "Exact share amounts by member name or id, summing to the full expense amount. Do not combine with forWhom.",
+  );
 
 export function registerTransactionTools(server: McpServer, client: SettleUp): void {
   /** Names are resolved against the group, because member ids mean nothing to a model. */
@@ -49,10 +55,11 @@ export function registerTransactionTools(server: McpServer, client: SettleUp): v
       description:
         "Record money spent for the group. By default it is paid by the user and " +
         "split equally between every active member — pass forWhom to split it " +
-        "between only some of them, or paidBy if someone else paid.",
+        "between only some of them, shares for exact unequal amounts, or paidBy if someone else paid.",
       inputSchema: {
         group: GROUP,
         amount: z.number().positive().describe("Total spent, positive"),
+        shares: SHARES,
         purpose: z.string().min(1).describe("What it was for. Settle Up rejects an empty one."),
         paidBy: z
           .array(z.string())
@@ -117,6 +124,9 @@ export function registerTransactionTools(server: McpServer, client: SettleUp): v
         group: GROUP,
         id: z.string().describe("Transaction id from search_transactions"),
         amount: z.number().positive().optional(),
+        shares: SHARES.describe(
+          "Exact share amounts for a single-item expense. Replaces its split; sums to its amount. Do not combine with forWhom.",
+        ),
         purpose: z.string().optional(),
         category: z.string().nullable().optional().describe("null clears the category"),
         paidBy: z.array(z.string()).min(1).optional().describe("Replaces the existing payers"),

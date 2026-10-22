@@ -15,6 +15,7 @@
 import { transactionTime } from "./dates.js";
 import { positiveAmount } from "./money.js";
 import { findMember } from "./query.js";
+import { customShares } from "./shares.js";
 import type { Group, Member, NewExpense, NewTransfer, Weighted } from "./types.js";
 import { SettleUpError } from "./types.js";
 
@@ -86,12 +87,15 @@ function purpose(value: string | undefined, fallback?: string): string {
 }
 
 export function buildExpense(group: Group, input: NewExpense): TransactionPayload {
+  if (input.shares !== undefined && input.forWhom !== undefined) {
+    throw new SettleUpError("pass shares or forWhom, not both");
+  }
   const payers = input.paidBy ? resolve(group, input.paidBy) : [me(group)];
   const beneficiaries = input.forWhom
     ? resolve(group, input.forWhom)
     : group.members.filter((m) => m.active);
 
-  if (beneficiaries.length === 0) {
+  if (input.shares === undefined && beneficiaries.length === 0) {
     throw new SettleUpError(
       `${JSON.stringify(group.name)} has no active members to split between.`,
     );
@@ -106,7 +110,15 @@ export function buildExpense(group: Group, input: NewExpense): TransactionPayloa
     ...time,
     fixedExchangeRate: false,
     whoPaid: evenly(payers),
-    items: [{ amount: positiveAmount(input.amount), forWhom: evenly(beneficiaries) }],
+    items: [
+      {
+        amount: positiveAmount(input.amount),
+        forWhom:
+          input.shares === undefined
+            ? evenly(beneficiaries)
+            : customShares(group, input.amount, input.shares),
+      },
+    ],
   };
 }
 

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0
+
+### Minor Changes
+
+- Accept exact custom share amounts in expense creation and single-item expense
+  edits. Validate totals without floating-point rounding and expose native split
+  weights in MCP readback.
+
 ## 0.2.1
 
 ### Patch Changes

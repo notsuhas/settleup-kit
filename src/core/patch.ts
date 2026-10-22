@@ -12,6 +12,7 @@ import { transactionTime, when } from "./dates.js";
 import { positiveAmount } from "./money.js";
 import type { RawTransaction } from "./normalise.js";
 import { findMember } from "./query.js";
+import { customShares } from "./shares.js";
 import type { Group, TransactionPatch, Weighted } from "./types.js";
 import { SettleUpError } from "./types.js";
 
@@ -25,6 +26,14 @@ export function applyPatch(
   group: Group,
 ): RawTransaction {
   const next: RawTransaction = { ...before };
+  if (patch.shares !== undefined && patch.forWhom !== undefined) {
+    throw new SettleUpError("pass shares or forWhom, not both");
+  }
+  if (patch.shares !== undefined && (before.type !== "expense" || before.items?.length !== 1)) {
+    throw new SettleUpError(
+      "custom shares require a single-item expense; extra item lines are preserved",
+    );
+  }
 
   if (patch.purpose !== undefined) {
     if (!patch.purpose.trim()) {
@@ -59,7 +68,7 @@ export function applyPatch(
     next.whoPaid = weigh(group, Array.isArray(patch.paidBy) ? patch.paidBy : [patch.paidBy]);
   }
 
-  if (patch.amount !== undefined || patch.forWhom !== undefined) {
+  if (patch.amount !== undefined || patch.forWhom !== undefined || patch.shares !== undefined) {
     const items = [...(before.items ?? [])];
     const first = items[0];
     // Both apply to the main item; a tip or tax line further down is left alone.
@@ -67,6 +76,9 @@ export function applyPatch(
       amount: patch.amount !== undefined ? positiveAmount(patch.amount) : (first?.amount ?? "0"),
       forWhom: patch.forWhom ? weigh(group, patch.forWhom) : (first?.forWhom ?? []),
     };
+    if (patch.shares !== undefined) {
+      items[0].forWhom = customShares(group, items[0].amount, patch.shares);
+    }
     next.items = items;
   }
 

@@ -42,6 +42,13 @@ export function naming(group: Group): Naming {
     paidBy: who(t.whoPaid),
     // Flattened across items: a model wants "who is this for", not the tip line.
     forWhom: [...new Set(t.items.flatMap((i) => who(i.forWhom ?? [])))],
+    split: t.items.map((item) => ({
+      amount: item.amount,
+      forWhom: (item.forWhom ?? []).map((member) => ({
+        member: name(member.memberId),
+        weight: member.weight,
+      })),
+    })),
     ...(t.items.length > 1 ? { items: t.items.length } : {}),
   });
 }
@@ -60,12 +67,15 @@ names a group, and members are named within it. list_groups shows both.
 
 Amounts are always positive. Direction comes from the kind of row:
 - add_expense records money someone spent for the group. It defaults to being
-  paid by you and split equally between every active member.
+  paid by you and split equally between every active member. Pass shares as
+  exact amounts by member name or id for an unequal split in one expense.
 - add_transfer records one member paying another back, which settles a debt.
 
 Splitting is the point of the app: if the user records a shared cost without
 saying who it was for, the default is an even split across the group. When it
 is ambiguous whether a cost was shared or personal, ask before writing.
+Custom shares must sum exactly to the total and cannot be combined with forWhom.
+Readback includes each item's amount and member weights so its split can be verified.
 
 Debts are computed by Settle Up itself and recalculated on every write, so
 group_balances after a write reflects the change. Deleting cannot be undone;

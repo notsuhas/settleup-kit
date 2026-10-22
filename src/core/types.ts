@@ -129,6 +129,8 @@ export interface NewExpense {
    * member, split equally — the usual "split this evenly" case.
    */
   forWhom?: string[];
+  /** Exact amounts by member name or id; mutually exclusive with forWhom. */
+  shares?: Record<string, number | string>;
   /** Emoji or category name. */
   category?: string;
   /** ISO 4217 code. Defaults to the group currency. */
@@ -162,6 +164,8 @@ export interface TransactionPatch {
   amount?: number | string;
   paidBy?: string | string[];
   forWhom?: string[];
+  /** Exact amounts for a single-item expense; mutually exclusive with forWhom. */
+  shares?: Record<string, number | string>;
   currencyCode?: string;
   date?: string;
   /** ISO timestamp with Z or an explicit UTC offset; mutually exclusive with date. */

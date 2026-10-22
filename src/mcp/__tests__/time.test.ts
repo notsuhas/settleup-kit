@@ -53,6 +53,39 @@ test("MCP accepts receipt times on expenses, transfers and edits and rejects amb
     });
     assert.equal(bad.isError, true);
     assert.equal(row.purpose, "Updated");
+    const custom = await caller.callTool({
+      name: "add_expense",
+      arguments: {
+        group: "Trip",
+        amount: 1212,
+        purpose: "Desserts",
+        paidBy: ["Bob"],
+        shares: { Alice: 508, Bob: 704 },
+        dateTime,
+      },
+    });
+    assert.ok(!custom.isError, JSON.stringify(custom));
+    const [content] = custom.content as { text: string }[];
+    assert.ok(content);
+    const saved = JSON.parse(content.text).transaction;
+    assert.equal(saved.amount, "1212");
+    assert.equal(saved.split.length, 1);
+    assert.deepEqual(saved.split[0].forWhom, [
+      { member: "Alice", weight: "127" },
+      { member: "Bob", weight: "176" },
+    ]);
+    const edit = await caller.callTool({
+      name: "edit_transaction",
+      arguments: { group: "Trip", id: "receipt", shares: { Alice: 500, Bob: 712 } },
+    });
+    assert.ok(!edit.isError, JSON.stringify(edit));
+    const snapshot = structuredClone(row);
+    const invalid = await caller.callTool({
+      name: "edit_transaction",
+      arguments: { group: "Trip", id: "receipt", shares: { Alice: 500, Bob: 711 } },
+    });
+    assert.equal(invalid.isError, true);
+    assert.deepEqual(row, snapshot);
   } finally {
     await caller.close();
     await server.close();

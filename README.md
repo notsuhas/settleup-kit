@@ -99,7 +99,25 @@ Settle Up's sandbox project instead of your real account.
 ## MCP server
 
 Seven tools: `list_groups`, `group_balances`, `search_transactions`,
-`add_expense`, `add_transfer`, `edit_transaction`, `delete_transaction`.
+`add_expense`, `add_transfer`, `edit_transaction`, `delete_transaction`. For
+unequal splits, pass `shares` as exact amounts by member name or id:
+
+```json
+{
+  "group": "Trip",
+  "amount": 120,
+  "purpose": "Dinner",
+  "paidBy": ["Alice"],
+  "shares": { "Alice": 45, "Bob": 75 }
+}
+```
+
+Shares must sum exactly to the total; do not combine them with `forWhom`. This
+creates one expense with native weighted shares. `edit_transaction` also accepts
+`shares` for single-item expenses. It refuses to replace a multi-item split,
+preserving separate tip or tax allocations. Search and write results include
+item amounts and member weights under `split` for verification.
+
 Creating groups and members is opt-in behind `SETTLEUP_MCP_ALLOW_STRUCTURE=1`;
 `delete_group` needs `SETTLEUP_MCP_ALLOW_DELETE=1` on top, because it takes
 every transaction in the group with it.
