@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0
+
+### Minor Changes
+
+- Add record_expense to check duplicate receipts and return the saved,
+  independently verified full bill and exact split in one call. Persist private
+  idempotency journals and reconcile uncertain writes before permitting retries.
+
 ## 0.3.2
 
 ### Patch Changes

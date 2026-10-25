@@ -14,6 +14,7 @@ import type { SettleUp } from "../client/api.js";
 import { type ClientOptions, createClient } from "../client/index.js";
 import { INSTRUCTIONS } from "./present.js";
 import { deletionsAllowed, registerDeletionTools } from "./tools/deletions.js";
+import { registerRecordingTool } from "./tools/recording.js";
 import { registerReferenceTools } from "./tools/reference.js";
 import { registerStructureTools, structureAllowed } from "./tools/structure.js";
 import { registerTransactionTools } from "./tools/transactions.js";
@@ -29,6 +30,7 @@ export function createMcpServer(options: ClientOptions = {}): McpServer {
     { instructions: INSTRUCTIONS },
   );
 
+  registerRecordingTool(server, client);
   registerReferenceTools(server, client);
   registerTransactionTools(server, client);
   if (structureAllowed()) registerStructureTools(server, client);

@@ -245,3 +245,19 @@ must complete a successful publish within two days or npm expires it.
 If publishing returns E404 while package reads work, check the package's trusted
 publisher configuration and repository metadata before replacing tokens. Passing
 CI does not verify npm publish authorization; verify the release job itself.
+
+### Verified receipt recording
+
+Prefer the MCP `record_expense` tool for a new receipt. It accepts a stable
+`receiptId`, the usual expense fields and an explicit `dateTime`. It checks
+existing rows before writing and returns the server readback with
+`verified: true`; no follow-up search is necessary. `shares` retains exact
+unequal amounts, while `forWhom` uses the app's normal equal split. Optional
+`original` retains original-currency receipt details in the private journal;
+`amount` and `currencyCode` remain the actual charged amount and currency.
+
+The private journal lives under the existing config directory. Reuse the same ID
+and identical inputs on retries. If a timed-out write is visible, it is reused.
+A missing uncertain write, edited or deleted indexed row, conflicting input or
+duplicate match stops without another write. After a process crash, reconcile
+the journal before an operator removes a stale `writer.lock`.

@@ -61,6 +61,11 @@ export const describeMember = (m: Member) => ({
 
 export const INSTRUCTIONS = `Read and write shared expenses in a live Settle Up account.
 
+For new receipts prefer record_expense: it checks duplicates and returns the saved,
+independently verified full bill and exact split in one call. Keep a stable receiptId.
+After verified=true, do not repeat search_transactions. Reuse loaded schemas and
+known group/member IDs; run independent apps in parallel.
+
 Settle Up is organised by **group**. Members, transactions and debts all belong
 to one, and the same person is a different member in each group — so every call
 names a group, and members are named within it. list_groups shows both.

@@ -21,6 +21,20 @@ export function registerTransactionTools(server: McpServer, client: SettleUp): v
   };
 
   server.registerTool(
+    "get_transaction",
+    {
+      title: "Get one saved transaction",
+      description:
+        "Fetch one transaction directly by ID with its payer and exact split; avoids downloading group history. record_expense already returns a verified row and needs no extra lookup.",
+      inputSchema: { group: GROUP, id: z.string().min(1) },
+    },
+    async ({ group, id }) =>
+      client.withFreshReads(async () =>
+        json({ transaction: (await show(group, [await client.transaction(group, id)]))[0] }),
+      ),
+  );
+
+  server.registerTool(
     "search_transactions",
     {
       title: "Search transactions",
