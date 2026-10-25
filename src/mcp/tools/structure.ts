@@ -30,13 +30,14 @@ export function registerStructureTools(server: McpServer, client: SettleUp): voi
         minimizeDebts: z.boolean().optional().describe("Fewest transfers to settle up"),
       },
     },
-    async (input) => {
-      const g = await client.createGroup(input);
-      return json({
-        created: g.id,
-        group: { name: g.name, currency: g.currencyCode, members: g.members.map(describeMember) },
-      });
-    },
+    async (input) =>
+      client.withFreshReads(async () => {
+        const g = await client.createGroup(input);
+        return json({
+          created: g.id,
+          group: { name: g.name, currency: g.currencyCode, members: g.members.map(describeMember) },
+        });
+      }),
   );
 
   server.registerTool(
@@ -53,10 +54,11 @@ export function registerStructureTools(server: McpServer, client: SettleUp): voi
         minimizeDebts: z.boolean().optional(),
       },
     },
-    async ({ group, ...patch }) => {
-      const g = await client.editGroup(group, patch);
-      return json({ updated: { name: g.name, currency: g.currencyCode } });
-    },
+    async ({ group, ...patch }) =>
+      client.withFreshReads(async () => {
+        const g = await client.editGroup(group, patch);
+        return json({ updated: { name: g.name, currency: g.currencyCode } });
+      }),
   );
 
   server.registerTool(
@@ -73,7 +75,9 @@ export function registerStructureTools(server: McpServer, client: SettleUp): voi
       },
     },
     async ({ group, ...input }) =>
-      json({ added: describeMember(await client.addMember(group, input)) }),
+      client.withFreshReads(async () =>
+        json({ added: describeMember(await client.addMember(group, input)) }),
+      ),
   );
 
   server.registerTool(
@@ -92,8 +96,10 @@ export function registerStructureTools(server: McpServer, client: SettleUp): voi
       },
     },
     async ({ group, member, ...patch }) =>
-      json({
-        updated: describeMember(await client.editMember(group, member, patch)),
-      }),
+      client.withFreshReads(async () =>
+        json({
+          updated: describeMember(await client.editMember(group, member, patch)),
+        }),
+      ),
   );
 }

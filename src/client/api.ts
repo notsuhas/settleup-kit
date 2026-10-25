@@ -29,6 +29,8 @@ import type {
 } from "../core/types.js";
 
 export interface SettleUp {
+  /** Share fresh reads only within one logical operation. */
+  withFreshReads<T>(operation: () => Promise<T>): Promise<T>;
   /** The signed-in user. */
   account(): Promise<Account>;
   /** Every group the user belongs to, with members resolved. */

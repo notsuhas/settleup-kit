@@ -25,9 +25,10 @@ export function registerDeletionTools(server: McpServer, client: SettleUp): void
         "confirm the group name and what it contains with the user first.",
       inputSchema: { group: z.string().describe("Group name, spelled out") },
     },
-    async ({ group }) => {
-      const gone = await client.deleteGroup(group);
-      return json({ deleted: { name: gone.name, members: gone.members.length } });
-    },
+    async ({ group }) =>
+      client.withFreshReads(async () => {
+        const gone = await client.deleteGroup(group);
+        return json({ deleted: { name: gone.name, members: gone.members.length } });
+      }),
   );
 }

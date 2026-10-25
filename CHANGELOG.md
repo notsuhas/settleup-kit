@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.2
+
+### Patch Changes
+
+- Reuse group metadata within each MCP operation and fetch individual
+  transactions directly. Keep subsequent operations fresh, invalidate writes,
+  and retain server readback verification.
+
 ## 0.3.1
 
 ### Patch Changes

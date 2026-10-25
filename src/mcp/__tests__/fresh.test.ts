@@ -10,15 +10,25 @@ test("consecutive MCP reads see server edits and deletions immediately", async (
   const originalFetch = globalThis.fetch;
   const expense = (amount: number) =>
     buildExpense(trip, { group: "Trip", amount, purpose: "Coffee", date: "2026-10-19" });
+  const reads: string[] = [];
   let rows: Record<string, unknown> = { receipt: expense(10) };
-  globalThis.fetch = (async (input) => {
+  let rejectWrite = false;
+  globalThis.fetch = (async (input, init) => {
     const path = new URL(String(input)).pathname;
+    reads.push(path);
+    if (init?.method === "PUT") {
+      if (rejectWrite) return Response.json({ error: "rejected" }, { status: 400 });
+      rows.receipt = JSON.parse(String(init.body));
+      return Response.json(rows.receipt);
+    }
     let data: unknown;
     if (path === "/userGroups/test-user.json") data = { g_trip: { member: "m_alice" } };
     else if (path === "/groups/g_trip.json") data = { name: "Trip", convertedToCurrency: "INR" };
     else if (path === "/members/g_trip.json")
       data = { m_alice: { name: "Alice", active: true }, m_bob: { name: "Bob", active: true } };
     else if (path === "/transactions/g_trip.json") data = rows;
+    else if (path.startsWith("/transactions/g_trip/"))
+      data = rows[path.slice("/transactions/g_trip/".length, -".json".length)] ?? null;
     else throw new Error("unexpected API path: " + path);
     return Response.json(data);
   }) as typeof fetch;
@@ -45,8 +55,46 @@ test("consecutive MCP reads see server edits and deletions immediately", async (
   };
   try {
     assert.equal((await search()).transactions[0].amount, "10");
+    assert.equal(reads.filter((p) => p === "/userGroups/test-user.json").length, 1);
     rows = { receipt: expense(20) };
     assert.equal((await search()).transactions[0].amount, "20");
+    reads.length = 0;
+    const single = await caller.callTool({
+      name: "edit_transaction",
+      arguments: { group: "Trip", id: "missing", purpose: "Edit" },
+    });
+    assert.equal(single.isError, true);
+    assert.ok(
+      !reads.includes("/transactions/g_trip.json"),
+      "single-row lookup skips group history",
+    );
+    reads.length = 0;
+    const edited = await caller.callTool({
+      name: "edit_transaction",
+      arguments: {
+        group: "Trip",
+        id: "receipt",
+        purpose: "Changed",
+        shares: { Alice: 12, Bob: 8 },
+      },
+    });
+    assert.ok(!edited.isError, JSON.stringify(edited));
+    assert.match(JSON.stringify(edited), /Changed/);
+    assert.equal(reads.filter((p) => p === "/userGroups/test-user.json").length, 1);
+    assert.ok(!reads.includes("/transactions/g_trip.json"));
+    assert.equal(
+      reads.filter((p) => p === "/transactions/g_trip/receipt.json").length,
+      4,
+      "before, edit source, write and fresh readback",
+    );
+    const saved = structuredClone(rows);
+    rejectWrite = true;
+    const failed = await caller.callTool({
+      name: "edit_transaction",
+      arguments: { group: "Trip", id: "receipt", purpose: "Rejected" },
+    });
+    assert.equal(failed.isError, true);
+    assert.deepEqual(rows, saved);
     rows = {};
     assert.equal((await search()).matched, 0);
   } finally {

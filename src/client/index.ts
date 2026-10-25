@@ -125,9 +125,10 @@ export function createClient(options: ClientOptions = {}): SettleUp {
 
   async function transactionOf(value: string, id: string): Promise<Transaction> {
     const g = await group(value);
-    const hit = (await transactionsOf(g.id)).find((t) => t.id === id);
+    const { db } = await connect();
+    const hit = await db.get<RawTransaction>(`transactions/${g.id}/${id}`);
     if (!hit) throw new SettleUpError(`no transaction ${id} in ${JSON.stringify(g.name)}`);
-    return hit;
+    return toTransaction(id, hit);
   }
 
   async function write(g: Group, payload: TransactionPayload): Promise<Transaction> {
@@ -151,6 +152,8 @@ export function createClient(options: ClientOptions = {}): SettleUp {
   });
 
   return {
+    withFreshReads: (operation) => cache.scope(operation),
+
     async account(): Promise<Account> {
       const { db, session: s } = await connect();
       const user = await db.get<{ email?: string; name?: string }>(`users/${s.uid}`);

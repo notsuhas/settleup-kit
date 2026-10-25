@@ -14,6 +14,7 @@ import { registerTransactionTools } from "../tools/transactions.js";
 test("MCP accepts receipt times on expenses, transfers and edits and rejects ambiguous times", async () => {
   let row: RawTransaction = {};
   const client = {
+    withFreshReads: <T>(operation: () => Promise<T>) => operation(),
     group: async () => trip,
     addExpense: async (input: NewExpense) => {
       row = buildExpense(trip, input);

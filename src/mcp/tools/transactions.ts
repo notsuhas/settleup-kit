@@ -38,14 +38,15 @@ export function registerTransactionTools(server: McpServer, client: SettleUp): v
         limit: z.number().int().min(1).max(200).default(25),
       },
     },
-    async ({ group, limit, ...query }) => {
-      const all = await client.transactions(group, query);
-      return json({
-        matched: all.length,
-        returned: Math.min(all.length, limit),
-        transactions: await show(group, all.slice(0, limit)),
-      });
-    },
+    async ({ group, limit, ...query }) =>
+      client.withFreshReads(async () => {
+        const all = await client.transactions(group, query);
+        return json({
+          matched: all.length,
+          returned: Math.min(all.length, limit),
+          transactions: await show(group, all.slice(0, limit)),
+        });
+      }),
   );
 
   server.registerTool(
@@ -77,13 +78,14 @@ export function registerTransactionTools(server: McpServer, client: SettleUp): v
         dateTime: DATE_TIME.optional(),
       },
     },
-    async ({ group, ...input }) => {
-      const created = await client.addExpense({ group, ...input });
-      return json({
-        created: created.id,
-        transaction: (await show(group, [created]))[0],
-      });
-    },
+    async ({ group, ...input }) =>
+      client.withFreshReads(async () => {
+        const created = await client.addExpense({ group, ...input });
+        return json({
+          created: created.id,
+          transaction: (await show(group, [created]))[0],
+        });
+      }),
   );
 
   server.registerTool(
@@ -104,13 +106,14 @@ export function registerTransactionTools(server: McpServer, client: SettleUp): v
         dateTime: DATE_TIME.optional(),
       },
     },
-    async ({ group, ...input }) => {
-      const created = await client.addTransfer({ group, ...input });
-      return json({
-        created: created.id,
-        transaction: (await show(group, [created]))[0],
-      });
-    },
+    async ({ group, ...input }) =>
+      client.withFreshReads(async () => {
+        const created = await client.addTransfer({ group, ...input });
+        return json({
+          created: created.id,
+          transaction: (await show(group, [created]))[0],
+        });
+      }),
   );
 
   server.registerTool(
@@ -136,15 +139,16 @@ export function registerTransactionTools(server: McpServer, client: SettleUp): v
         dateTime: DATE_TIME.optional(),
       },
     },
-    async ({ group, id, ...patch }) => {
-      if (Object.values(patch).every((v) => v === undefined)) {
-        throw new Error("nothing to change — pass at least one field");
-      }
-      const before = await client.transaction(group, id);
-      const after = await client.editTransaction(group, id, patch);
-      const rendered = await show(group, [before, after]);
-      return json({ before: rendered[0], after: rendered[1] });
-    },
+    async ({ group, id, ...patch }) =>
+      client.withFreshReads(async () => {
+        if (Object.values(patch).every((v) => v === undefined)) {
+          throw new Error("nothing to change — pass at least one field");
+        }
+        const before = await client.transaction(group, id);
+        const after = await client.editTransaction(group, id, patch);
+        const rendered = await show(group, [before, after]);
+        return json({ before: rendered[0], after: rendered[1] });
+      }),
   );
 
   server.registerTool(
@@ -158,8 +162,10 @@ export function registerTransactionTools(server: McpServer, client: SettleUp): v
       },
     },
     async ({ group, id }) =>
-      json({
-        deleted: (await show(group, [await client.deleteTransaction(group, id)]))[0],
-      }),
+      client.withFreshReads(async () =>
+        json({
+          deleted: (await show(group, [await client.deleteTransaction(group, id)]))[0],
+        }),
+      ),
   );
 }

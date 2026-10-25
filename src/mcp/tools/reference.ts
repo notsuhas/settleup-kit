@@ -16,14 +16,16 @@ export function registerReferenceTools(server: McpServer, client: SettleUp): voi
       inputSchema: {},
     },
     async () =>
-      json(
-        (await client.groups()).map((g) => ({
-          name: g.name,
-          id: g.id,
-          currency: g.currencyCode,
-          you: g.members.find((m) => m.id === g.meMemberId)?.name,
-          members: g.members.map(describeMember),
-        })),
+      client.withFreshReads(async () =>
+        json(
+          (await client.groups()).map((g) => ({
+            name: g.name,
+            id: g.id,
+            currency: g.currencyCode,
+            you: g.members.find((m) => m.id === g.meMemberId)?.name,
+            members: g.members.map(describeMember),
+          })),
+        ),
       ),
   );
 
@@ -38,26 +40,27 @@ export function registerReferenceTools(server: McpServer, client: SettleUp): voi
         group: z.string().describe("Group name from list_groups"),
       },
     },
-    async ({ group }) => {
-      const [g, balances, debts] = await Promise.all([
-        client.group(group),
-        client.balances(group),
-        client.debts(group),
-      ]);
-      const name = (id: string) => g.members.find((m) => m.id === id)?.name ?? id;
-      return json({
-        group: g.name,
-        currency: g.currencyCode,
-        balances: balances.map((b) => ({
-          member: b.name,
-          net: Number(b.net.toFixed(2)),
-        })),
-        settleWith: debts.map((d) => ({
-          from: name(d.from),
-          to: name(d.to),
-          amount: Number(Number(d.amount).toFixed(2)),
-        })),
-      });
-    },
+    async ({ group }) =>
+      client.withFreshReads(async () => {
+        const [g, balances, debts] = await Promise.all([
+          client.group(group),
+          client.balances(group),
+          client.debts(group),
+        ]);
+        const name = (id: string) => g.members.find((m) => m.id === id)?.name ?? id;
+        return json({
+          group: g.name,
+          currency: g.currencyCode,
+          balances: balances.map((b) => ({
+            member: b.name,
+            net: Number(b.net.toFixed(2)),
+          })),
+          settleWith: debts.map((d) => ({
+            from: name(d.from),
+            to: name(d.to),
+            amount: Number(Number(d.amount).toFixed(2)),
+          })),
+        });
+      }),
   );
 }
