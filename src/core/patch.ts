@@ -39,6 +39,9 @@ export function applyPatch(
     if (!patch.purpose.trim()) {
       throw new SettleUpError("purpose cannot be cleared: Settle Up rejects an empty description");
     }
+    if (patch.purpose.length > 128) {
+      throw new SettleUpError("purpose must be at most 128 characters; shorten the description");
+    }
     next.purpose = patch.purpose;
   }
 

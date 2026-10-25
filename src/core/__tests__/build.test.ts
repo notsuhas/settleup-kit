@@ -110,3 +110,15 @@ test("the timezone recorded is the one in force on the transaction's own date", 
   assert.equal(offsetOf("2026-01-15"), expected("2026-01-15"));
   assert.equal(offsetOf("2026-07-15"), expected("2026-07-15"));
 });
+
+test("description limit matches the native editor for expenses and transfers", () => {
+  for (const length of [128, 129]) {
+    const input = { ...base, purpose: "x".repeat(length) };
+    const build = () => [
+      buildExpense(trip, input),
+      buildTransfer(trip, { ...input, from: "Alice", to: "Bob" }),
+    ];
+    if (length === 128) assert.doesNotThrow(build);
+    else assert.throws(build, /at most 128 characters/);
+  }
+});

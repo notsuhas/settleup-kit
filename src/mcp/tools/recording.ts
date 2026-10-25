@@ -74,7 +74,7 @@ export function registerRecordingTool(server: McpServer, client: SettleUp): void
         receiptId: z.string().min(3).max(128),
         group: z.string(),
         amount: z.number().positive(),
-        purpose: z.string().min(1),
+        purpose: z.string().min(1).max(128),
         dateTime: DATE_TIME,
         paidBy: z.array(z.string()).min(1).optional(),
         forWhom: z.array(z.string()).min(1).optional(),

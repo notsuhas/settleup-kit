@@ -104,3 +104,12 @@ test("timestamp and description edits preserve the recorded exchange rates", () 
     assert.deepEqual(applyPatch(live, patch, trip).exchangeRates, live.exchangeRates);
   }
 });
+
+test("description edits reject overlong text while preserving existing descriptions", () => {
+  assert.equal(applyPatch(live, { purpose: "x".repeat(128) }, trip).purpose?.length, 128);
+  assert.throws(
+    () => applyPatch(live, { purpose: "x".repeat(129) }, trip),
+    /at most 128 characters/,
+  );
+  assert.equal(applyPatch(live, { amount: 4000 }, trip).purpose, live.purpose);
+});
