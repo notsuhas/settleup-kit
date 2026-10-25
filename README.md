@@ -118,6 +118,11 @@ creates one expense with native weighted shares. `edit_transaction` also accepts
 preserving separate tip or tax allocations. Search and write results include
 item amounts and member weights under `split` for verification.
 
+For equal splits use `forWhom` and let Settle Up round the amounts; a rounding
+penny should not turn an equal split into custom weights. Custom decimal
+allocations stay as decimal weights, matching the official app's amount-entry
+conversion. Settle Up does not persist a separate exact-amount display mode.
+
 Creating groups and members is opt-in behind `SETTLEUP_MCP_ALLOW_STRUCTURE=1`;
 `delete_group` needs `SETTLEUP_MCP_ALLOW_DELETE=1` on top, because it takes
 every transaction in the group with it.

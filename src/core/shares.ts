@@ -30,15 +30,16 @@ export function customShares(
     const [integer = "0", fraction = ""] = text.split(".");
     return BigInt(integer + fraction.padEnd(scale, "0"));
   };
-  const values = entries.map((entry) => ({ memberId: entry.memberId, units: units(entry.text) }));
+  const values = entries.map((entry) => ({ ...entry, units: units(entry.text) }));
   if (values.reduce((sum, value) => sum + value.units, 0n) !== units(total)) {
     throw new SettleUpError("shares must sum exactly to the expense amount");
   }
   const divisor = values.reduce((result, value) => gcd(result, value.units), 0n);
+  const reduce = divisor >= 10n ** BigInt(scale);
   return values
     .filter((value) => value.units > 0n)
     .map((value) => ({
       memberId: value.memberId,
-      weight: String(value.units / divisor),
+      weight: reduce ? String(value.units / divisor) : value.text,
     }));
 }

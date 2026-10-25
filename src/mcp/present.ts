@@ -75,6 +75,9 @@ Splitting is the point of the app: if the user records a shared cost without
 saying who it was for, the default is an even split across the group. When it
 is ambiguous whether a cost was shared or personal, ask before writing.
 Custom shares must sum exactly to the total and cannot be combined with forWhom.
+For equal splits use forWhom and let Settle Up round. Never turn rounding pennies
+into custom weights. Settle Up stores custom allocations as weights internally;
+there is no separately persisted exact-amount mode.
 Readback includes each item's amount and member weights so its split can be verified.
 
 Debts are computed by Settle Up itself and recalculated on every write, so

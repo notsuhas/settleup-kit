@@ -10,7 +10,7 @@ const SHARES = z
   .record(z.string(), z.union([z.number().nonnegative(), z.string()]))
   .optional()
   .describe(
-    "Exact share amounts by member name or id, summing to the full expense amount. Do not combine with forWhom.",
+    "Exact amounts for genuinely unequal shares, summing to the full expense amount. For equal splits use forWhom and let Settle Up round; do not encode rounding pennies as custom shares. Do not combine with forWhom.",
   );
 
 export function registerTransactionTools(server: McpServer, client: SettleUp): void {
@@ -125,7 +125,7 @@ export function registerTransactionTools(server: McpServer, client: SettleUp): v
         id: z.string().describe("Transaction id from search_transactions"),
         amount: z.number().positive().optional(),
         shares: SHARES.describe(
-          "Exact share amounts for a single-item expense. Replaces its split; sums to its amount. Do not combine with forWhom.",
+          "Exact unequal amounts for a single-item expense. Replaces its split; sums to its amount. For equal splits use forWhom and let Settle Up round. Do not combine with forWhom.",
         ),
         purpose: z.string().optional(),
         category: z.string().nullable().optional().describe("null clears the category"),

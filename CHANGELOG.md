@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.1
+
+### Patch Changes
+
+- Keep custom decimal shares in Settle Up's native decimal-weight format instead
+  of multiplying them into large integer weights. Direct equal splits through
+  the regular participant list so rounding pennies do not become custom weights.
+
 ## 0.3.0
 
 ### Minor Changes

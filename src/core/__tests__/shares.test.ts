@@ -31,7 +31,7 @@ test("exact shares create one weighted expense and edits preserve unrelated fiel
   });
   assert.deepEqual(
     decimal.items[0]?.forWhom.map((member) => member.weight),
-    ["1", "2"],
+    ["0.10", "0.2"],
   );
   const invalidShares: Record<string, number>[] = [
     {},
@@ -63,5 +63,28 @@ test("exact shares create one weighted expense and edits preserve unrelated fiel
         trip,
       ),
     SettleUpError,
+  );
+});
+
+test("decimal allocations retain native decimal weights instead of becoming integer units", () => {
+  const group = {
+    ...trip,
+    members: [...trip.members, { id: "m_dan", name: "Dan", active: true, defaultWeight: "1" }],
+  };
+  const receipt = buildExpense(group, {
+    group: "Trip",
+    amount: "4619.47",
+    purpose: "Three tickets",
+    shares: { Alice: "1539.83", Bob: "1539.82", Dan: "1539.82" },
+  });
+  assert.deepEqual(
+    receipt.items[0]?.forWhom.map((member) => member.weight),
+    ["1539.83", "1539.82", "1539.82"],
+  );
+  const corrected = applyPatch(receipt, { forWhom: ["Alice", "Bob", "Dan"] }, group);
+  assert.equal(corrected.items?.[0]?.amount, "4619.47");
+  assert.deepEqual(
+    corrected.items?.[0]?.forWhom.map((member) => member.weight),
+    ["1", "1", "1"],
   );
 });
