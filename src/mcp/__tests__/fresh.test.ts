@@ -22,6 +22,7 @@ test("consecutive MCP reads see server edits and deletions immediately", async (
       return Response.json(rows.receipt);
     }
     let data: unknown;
+    if (path === "/userGroups/test-user/g_trip.json") return Response.json({ member: "m_alice" });
     if (path === "/userGroups/test-user.json") data = { g_trip: { member: "m_alice" } };
     else if (path === "/groups/g_trip.json") data = { name: "Trip", convertedToCurrency: "INR" };
     else if (path === "/members/g_trip.json")
@@ -55,7 +56,7 @@ test("consecutive MCP reads see server edits and deletions immediately", async (
   };
   try {
     assert.equal((await search()).transactions[0].amount, "10");
-    assert.equal(reads.filter((p) => p === "/userGroups/test-user.json").length, 1);
+    assert.equal(reads.filter((p) => p.startsWith("/userGroups/test-user")).length, 1);
     rows = { receipt: expense(20) };
     assert.equal((await search()).transactions[0].amount, "20");
     reads.length = 0;
@@ -80,7 +81,7 @@ test("consecutive MCP reads see server edits and deletions immediately", async (
     });
     assert.ok(!edited.isError, JSON.stringify(edited));
     assert.match(JSON.stringify(edited), /Changed/);
-    assert.equal(reads.filter((p) => p === "/userGroups/test-user.json").length, 1);
+    assert.equal(reads.filter((p) => p.startsWith("/userGroups/test-user")).length, 1);
     assert.ok(!reads.includes("/transactions/g_trip.json"));
     assert.equal(
       reads.filter((p) => p === "/transactions/g_trip/receipt.json").length,

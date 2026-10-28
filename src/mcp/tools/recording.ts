@@ -32,9 +32,9 @@ export function registerRecordingTool(server: McpServer, client: SettleUp): void
   const record = createRecorder<IRecording, Transaction>({
     creationIsServerReadback: true,
     directory: async (inputs) => {
-      const account = await client.account();
+      const accountId = await client.accountId();
       const key = createHash("sha256")
-        .update(`${account.uid}:${inputs[0]?.input.group}`)
+        .update(`${accountId}:${inputs[0]?.input.group}`)
         .digest("hex");
       return join(
         process.env.SETTLEUP_CONFIG_DIR ??

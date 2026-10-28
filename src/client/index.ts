@@ -67,27 +67,59 @@ export function createClient(options: ClientOptions = {}): SettleUp {
     return { db: new Db(env, s), session: s };
   }
 
+  const groupIds = new Map<string, string>();
+
   async function loadGroups(): Promise<Group[]> {
     const { db, session: s } = await connect();
     const mine = await db.get<Record<string, RawUserGroup>>(`userGroups/${s.uid}`);
-    if (!mine) return [];
+    if (!mine) {
+      groupIds.clear();
+      return [];
+    }
 
     // Each group's document and member list are separate nodes, so this is a
     // fan-out rather than one read. Groups are few; members are not paginated.
-    return Promise.all(
+    const loaded = await Promise.all(
       Object.entries(mine).map(async ([groupId, link]) => {
         const [raw, members] = await Promise.all([
           db.get<RawGroup>(`groups/${groupId}`),
           db.get<Record<string, RawMember>>(`members/${groupId}`),
         ]);
-        return toGroup(groupId, raw ?? {}, fromMap(members, toMember), link?.member);
+        const result = toGroup(groupId, raw ?? {}, fromMap(members, toMember), link?.member);
+        return cache.get(`groups:one:${groupId}`, async () => result);
       }),
     );
+    groupIds.clear();
+    for (const group of loaded) {
+      groupIds.set(group.id, group.id);
+      const name = group.name.toLowerCase();
+      if (loaded.filter((candidate) => candidate.name.toLowerCase() === name).length === 1)
+        groupIds.set(name, group.id);
+    }
+    return loaded;
   }
 
   const groups = () => cache.get("groups", loadGroups);
 
-  const group = async (value: string) => findGroup(await groups(), value);
+  const group = async (value: string): Promise<Group> => {
+    const id =
+      groupIds.get(value) ??
+      groupIds.get(value.toLowerCase()) ??
+      (/^-[A-Za-z0-9_-]{19}$/.test(value) ? value : undefined);
+    if (!id) return findGroup(await groups(), value);
+    const current = await cache.get(`groups:one:${id}`, async () => {
+      const { db, session } = await connect();
+      const [link, raw, members] = await Promise.all([
+        db.get<RawUserGroup>(`userGroups/${session.uid}/${id}`),
+        db.get<RawGroup>(`groups/${id}`),
+        db.get<Record<string, RawMember>>(`members/${id}`),
+      ]);
+      if (!link || !raw)
+        throw new SettleUpError("Group is missing or no longer belongs to this account");
+      return toGroup(id, raw, fromMap(members, toMember), link.member);
+    });
+    return findGroup([current], value);
+  };
 
   async function transactionsOf(groupId: string): Promise<Transaction[]> {
     return cache.get(`tx:${groupId}`, async () => {
@@ -153,6 +185,8 @@ export function createClient(options: ClientOptions = {}): SettleUp {
 
   return {
     withFreshReads: (operation) => cache.scope(operation),
+
+    accountId: async () => (await connect()).session.uid,
 
     async account(): Promise<Account> {
       const { db, session: s } = await connect();
@@ -221,6 +255,9 @@ export function createClient(options: ClientOptions = {}): SettleUp {
     ...groupApi,
     ...members,
 
-    refresh: () => cache.clear(),
+    refresh: () => {
+      groupIds.clear();
+      cache.clear();
+    },
   };
 }

@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.4.2
+
+### Patch Changes
+
+- Resolve known groups with fresh, parallel membership, group and member reads
+  instead of reloading every group. Receipt journals use the authenticated user
+  ID without downloading the profile. Transaction verification and exact share
+  validation remain unchanged.
+
+## 0.4.1
+
+### Patch Changes
+
+- Validate description length before recording or editing transactions.
+
 ## 0.4.0
 
 ### Minor Changes
