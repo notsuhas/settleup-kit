@@ -33,6 +33,8 @@ export interface SettleUp {
   withFreshReads<T>(operation: () => Promise<T>): Promise<T>;
   /** The signed-in user. */
   account(): Promise<Account>;
+  /** Authenticated user ID without downloading the profile. */
+  accountId(): Promise<string>;
   /** Every group the user belongs to, with members resolved. */
   groups(): Promise<Group[]>;
   /** One group by name or id. */

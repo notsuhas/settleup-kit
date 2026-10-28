@@ -83,6 +83,9 @@ function purpose(value: string | undefined, fallback?: string): string {
         'description, answering "Permission denied".',
     );
   }
+  if (text.length > 128) {
+    throw new SettleUpError("purpose must be at most 128 characters; shorten the description");
+  }
   return text;
 }
 

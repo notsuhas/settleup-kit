@@ -75,7 +75,11 @@ export function registerTransactionTools(server: McpServer, client: SettleUp): v
         group: GROUP,
         amount: z.number().positive().describe("Total spent, positive"),
         shares: SHARES,
-        purpose: z.string().min(1).describe("What it was for. Settle Up rejects an empty one."),
+        purpose: z
+          .string()
+          .min(1)
+          .max(128)
+          .describe("What it was for. Settle Up rejects an empty one."),
         paidBy: z
           .array(z.string())
           .min(1)
@@ -114,7 +118,7 @@ export function registerTransactionTools(server: McpServer, client: SettleUp): v
         amount: z.number().positive(),
         to: z.string().describe("Member name being paid"),
         from: z.string().optional().describe("Member name paying. Defaults to the user."),
-        purpose: z.string().optional().describe('Defaults to "Debt settlement"'),
+        purpose: z.string().max(128).optional().describe('Defaults to "Debt settlement"'),
         currencyCode: z.string().optional(),
         date: DATE.optional(),
         dateTime: DATE_TIME.optional(),
@@ -144,7 +148,7 @@ export function registerTransactionTools(server: McpServer, client: SettleUp): v
         shares: SHARES.describe(
           "Exact unequal amounts for a single-item expense. Replaces its split; sums to its amount. For equal splits use forWhom and let Settle Up round. Do not combine with forWhom.",
         ),
-        purpose: z.string().optional(),
+        purpose: z.string().max(128).optional(),
         category: z.string().nullable().optional().describe("null clears the category"),
         paidBy: z.array(z.string()).min(1).optional().describe("Replaces the existing payers"),
         forWhom: z.array(z.string()).min(1).optional().describe("Replaces the existing split"),

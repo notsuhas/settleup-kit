@@ -18,6 +18,7 @@ test("receipt tool returns verified exact shares with one duplicate scan and sur
   globalThis.fetch = (async (input, init) => {
     const path = new URL(String(input)).pathname;
     let data: unknown;
+    if (path === "/userGroups/test-user/group.json") return Response.json({ member: "alice" });
     if (path === "/userGroups/test-user.json") data = { group: { member: "alice" } };
     else if (path === "/users/test-user.json") data = { email: "test@example.com" };
     else if (path === "/groups/group.json") data = { name: "Trip", convertedToCurrency: "INR" };
