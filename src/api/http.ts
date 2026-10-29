@@ -51,7 +51,13 @@ export interface RequestOptions {
  * carries the status and the parsed body for the caller to inspect.
  */
 export async function request<T>(url: string, options: RequestOptions = {}): Promise<T> {
-  const { method = "GET", body, form, attempts = 4, timeoutMs = 30_000 } = options;
+  const {
+    method = "GET",
+    body,
+    form,
+    attempts = method === "GET" ? 4 : 1,
+    timeoutMs = 30_000,
+  } = options;
   const hasBody = body !== undefined || form !== undefined;
   const payload = form ? new URLSearchParams(form).toString() : JSON.stringify(body ?? {});
   const contentType = form

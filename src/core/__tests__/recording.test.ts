@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { once } from "node:events";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -113,5 +114,74 @@ test("duplicate and conflicting server rows stop before any mutation", async () 
     assert.equal(f.counts().writes, 0);
   } finally {
     f.close();
+  }
+});
+
+test("legacy uncertain journals migrate without retrying a missing write", async () => {
+  const { createHash } = await import("node:crypto");
+  const { writeFileSync } = await import("node:fs");
+  const directory = mkdtempSync(join(tmpdir(), "legacy-receipt-"));
+  const input = [{ name: "own", amount: -60 }];
+  const key = createHash("sha256").update("legacy").digest("hex");
+  writeFileSync(
+    join(directory, `${key}.json`),
+    JSON.stringify({
+      inputs: input,
+      fingerprint: createHash("sha256").update(JSON.stringify(input)).digest("hex"),
+      ids: [null],
+      pending: [0],
+    }),
+  );
+  let creates = 0;
+  let rows: IRow[] = [];
+  const record = createRecorder({
+    directory: async () => directory,
+    list: async () => rows,
+    identity: (row: IRow, value: Omit<IRow, "id">) => row.name === value.name,
+    verify: () => {},
+    create: async () => {
+      creates++;
+      return [];
+    },
+  });
+  try {
+    await assert.rejects(record("legacy", input), /missing or uncertain/);
+    rows = [{ id: "saved", name: "own", amount: -60 }];
+    assert.equal((await record("legacy", input))[0]?.id, "saved");
+    assert.equal(creates, 0);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("process death releases the writer lock while preserving pending receipt state", async () => {
+  const { spawn } = await import("node:child_process");
+  const directory = mkdtempSync(join(tmpdir(), "crashed-receipt-"));
+  const moduleUrl = new URL("../recording.js", import.meta.url).href;
+  const script = `import {createRecorder} from ${JSON.stringify(moduleUrl)}; const record=createRecorder({directory:async()=>${JSON.stringify(directory)},list:async()=>[],identity:()=>false,verify:()=>{},create:async()=>{process.send('pending');await new Promise(()=>{});return[];}}); setInterval(()=>{},1000); await record('crash',[{name:'own',amount:-60}]);`;
+  const child = spawn(process.execPath, ["--input-type=module", "-e", script], {
+    stdio: ["ignore", "ignore", "pipe", "ipc"],
+  });
+  let created = 0;
+  try {
+    await once(child, "message", { signal: AbortSignal.timeout(10_000) });
+    const exited = once(child, "exit");
+    child.kill("SIGKILL");
+    await exited;
+    const record = createRecorder({
+      directory: async () => directory,
+      list: async () => [],
+      identity: () => false,
+      verify: () => {},
+      create: async () => {
+        created++;
+        return [];
+      },
+    });
+    await assert.rejects(record("crash", [{ name: "own", amount: -60 }]), /missing or uncertain/);
+    assert.equal(created, 0);
+  } finally {
+    child.kill("SIGKILL");
+    rmSync(directory, { recursive: true, force: true });
   }
 });

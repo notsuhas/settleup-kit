@@ -74,10 +74,33 @@ There is no signed-amount convention to get wrong.
 
 ## Caching
 
-Reads are cached for five minutes. Writes invalidate the group they touched, so
-a balance read straight after a write is correct. A change made on someone's
-phone can take up to five minutes to show up.
+MCP reads use a persistent local SQLite ledger. A complete snapshot is reused
+across filters and process restarts. Responses include `sync.lastSyncedAt`,
+`source`, `stale`, `refreshing`, and any `lastError`. After 30 seconds a read
+returns the saved snapshot immediately and starts background reconciliation.
+There is no periodic polling: an unused scope can be arbitrarily old.
+Pass `fresh: true` for audits, current balances, or settlement decisions; the
+first read of a scope also waits for a complete API reconciliation.
 
-Both transports share one server for the life of the process, so the cache
-survives across requests. The HTTP transport is still stateless per request —
-there is no session table to lose on a restart.
+Writes invalidate snapshots before and after the attempt, even after a timeout.
+Receipt duplicate checks and independent write verification bypass the ledger.
+A complete refresh replaces all rows, including external edits and deletions.
+Transient failures retain the last complete snapshot with an error and retry
+backoff; observed authorization failures block it until access is restored.
+Access changes cannot be detected while serving a snapshot without a network call.
+
+`ledger_status` reports each saved scope. Reference list results now wrap their
+array under a named field alongside `sync`; consumers must read that field.
+Set the package's `*_LEDGER_PATH` environment variable to override the private
+account-specific default. Library callers can pass `ledgerPath: false` to the
+MCP server factory to disable persistence. The SDK/CLI remain API-backed.
+Node 22.13 or newer is required for built-in SQLite.
+
+Ledger and receipt databases contain private financial data. Keep their config
+volume persistent and private. Use SQLite's backup facilities or stop all
+writers before copying the database and its WAL files; copying only a live
+`.sqlite` file can lose recent commits. Do not run pre-upgrade receipt writers
+alongside this version. Legacy JSON receipts migrate on first access. A legacy
+`writer.lock` fails closed and needs operator reconciliation before removal;
+SQLite locks release automatically when a process exits. A pending write stays
+uncertain after a crash and is never blindly replayed.

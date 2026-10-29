@@ -1,23 +1,27 @@
-/** Reading the shape of the account: groups, members, debts and balances. */
-
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { SettleUp } from "../../client/api.js";
+import type { createLocalReads } from "../ledger.js";
 import { describeMember, json } from "../present.js";
 
-export function registerReferenceTools(server: McpServer, client: SettleUp): void {
+export function registerReferenceTools(
+  server: McpServer,
+  client: SettleUp,
+  reads: ReturnType<typeof createLocalReads>,
+): void {
   server.registerTool(
     "list_groups",
     {
       title: "List groups",
       description:
-        "Every group the user is in, with its members and currency. Start here: " +
-        "members are named per group, and the other tools take those names.",
-      inputSchema: {},
+        "Local group/member snapshot with sync freshness. Pass fresh=true to reconcile with Settle Up.",
+      inputSchema: { fresh: z.boolean().default(false) },
+      annotations: { readOnlyHint: true },
     },
-    async () =>
-      client.withFreshReads(async () =>
-        json(
+    async ({ fresh }) => {
+      const saved = await reads.value(
+        "reference:groups",
+        async () =>
           (await client.groups()).map((g) => ({
             name: g.name,
             id: g.id,
@@ -25,42 +29,44 @@ export function registerReferenceTools(server: McpServer, client: SettleUp): voi
             you: g.members.find((m) => m.id === g.meMemberId)?.name,
             members: g.members.map(describeMember),
           })),
-        ),
-      ),
+        fresh,
+      );
+      return json({ groups: saved.value, sync: saved.sync });
+    },
   );
-
   server.registerTool(
     "group_balances",
     {
       title: "Who owes whom",
       description:
-        "The settlement for one group: each member's net position, and the " +
-        "transfers that would clear it. Positive net means the member is owed money.",
-      inputSchema: {
-        group: z.string().describe("Group name from list_groups"),
-      },
+        "Local settlement snapshot with sync freshness. Positive net means the member is owed money. Pass fresh=true for reconciliation before settling or auditing.",
+      inputSchema: { group: z.string(), fresh: z.boolean().default(false) },
+      annotations: { readOnlyHint: true },
     },
-    async ({ group }) =>
-      client.withFreshReads(async () => {
-        const [g, balances, debts] = await Promise.all([
-          client.group(group),
-          client.balances(group),
-          client.debts(group),
-        ]);
-        const name = (id: string) => g.members.find((m) => m.id === id)?.name ?? id;
-        return json({
-          group: g.name,
-          currency: g.currencyCode,
-          balances: balances.map((b) => ({
-            member: b.name,
-            net: Number(b.net.toFixed(2)),
-          })),
-          settleWith: debts.map((d) => ({
-            from: name(d.from),
-            to: name(d.to),
-            amount: Number(Number(d.amount).toFixed(2)),
-          })),
-        });
-      }),
+    async ({ group, fresh }) => {
+      const saved = await reads.value(
+        `reference:balances:${group}`,
+        async () => {
+          const [g, balances, debts] = await Promise.all([
+            client.group(group),
+            client.balances(group),
+            client.debts(group),
+          ]);
+          const name = (id: string) => g.members.find((m) => m.id === id)?.name ?? id;
+          return {
+            group: g.name,
+            currency: g.currencyCode,
+            balances: balances.map((b) => ({ member: b.name, net: Number(b.net.toFixed(2)) })),
+            settleWith: debts.map((d) => ({
+              from: name(d.from),
+              to: name(d.to),
+              amount: Number(Number(d.amount).toFixed(2)),
+            })),
+          };
+        },
+        fresh,
+      );
+      return json({ ...saved.value, sync: saved.sync });
+    },
   );
 }
