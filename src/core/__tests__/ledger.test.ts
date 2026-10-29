@@ -265,3 +265,47 @@ test("an explicit ledger path is bound to its original account and environment",
     f.close();
   }
 });
+
+test("request teardown drains background refresh before closing the database", async () => {
+  const f = fixture();
+  const ledger = f.open();
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  try {
+    await ledger.read("wallet", async () => data());
+    f.advance(2000);
+    const stale = await ledger.read("wallet", async () => {
+      await gate;
+      return data(40);
+    });
+    assert.equal(stale.rows[0]?.amount, 10);
+    let done = false;
+    const closing = ledger.drain().then(() => {
+      done = true;
+      ledger.close();
+    });
+    await Promise.resolve();
+    assert.equal(done, false);
+    release();
+    await closing;
+    const reopened = f.open();
+    try {
+      assert.equal(
+        (
+          await reopened.read("wallet", async (): Promise<ReturnType<typeof data>> => {
+            throw Error("offline");
+          })
+        ).rows[0]?.amount,
+        40,
+      );
+    } finally {
+      reopened.close();
+    }
+  } finally {
+    release();
+    ledger.close();
+    f.close();
+  }
+});

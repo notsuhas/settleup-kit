@@ -259,6 +259,10 @@ export class Ledger {
       }));
   }
 
+  async drain(): Promise<void> {
+    await Promise.allSettled(this.running.values());
+  }
+
   close(): void {
     if (this.closed) return;
     this.closed = true;

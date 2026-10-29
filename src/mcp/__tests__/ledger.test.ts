@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { DatabaseSync } from "node:sqlite";
 import { test } from "node:test";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
@@ -15,6 +16,7 @@ test("group ledger survives restart, preserves exact splits and invalidates afte
   let calls = 0;
   let writes = 0;
   let offline = false;
+  let pendingRead: Promise<void> | undefined;
   const expense = buildExpense(trip, {
     group: "Trip",
     amount: 100,
@@ -25,6 +27,7 @@ test("group ledger survives restart, preserves exact splits and invalidates afte
   let rows: Record<string, unknown> = { receipt: expense };
   globalThis.fetch = (async (input, init) => {
     calls++;
+    await pendingRead;
     const path = new URL(String(input)).pathname;
     if (offline) return Response.json({ error: "offline" }, { status: 400 });
     if (init?.method === "PUT") {
@@ -94,6 +97,26 @@ test("group ledger survives restart, preserves exact splits and invalidates afte
     rows = {};
     assert.equal((await search({ fresh: true })).matched, 0);
     assert.equal((await search()).matched, 0);
+    const db = new DatabaseSync(join(directory, "ledger.sqlite"));
+    db.exec("UPDATE snapshots SET synced_at=0");
+    db.close();
+    let release!: () => void;
+    pendingRead = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    assert.equal((await search()).sync.stale, true);
+    let closed = false;
+    const closing = session.close().then(() => {
+      closed = true;
+    });
+    await new Promise((resolve) => setImmediate(resolve));
+    const prematurelyClosed = closed;
+    release();
+    await closing;
+    assert.equal(prematurelyClosed, false);
+    session = await start();
+    offline = true;
+    assert.equal((await search()).sync.stale, false);
   } finally {
     await session.close();
     globalThis.fetch = original;
