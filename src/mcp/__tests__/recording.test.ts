@@ -36,7 +36,7 @@ test("receipt tool returns verified exact shares with one duplicate scan and sur
     return Response.json(data);
   }) as typeof fetch;
   const token = `header.${Buffer.from(JSON.stringify({ sub: "test-user", exp: Math.floor(Date.now() / 1000) + 3600 })).toString("base64url")}.signature`;
-  const server = createMcpServer({ token });
+  const server = createMcpServer({ ledgerPath: false, token });
   const caller = new Client({ name: "receipt-test", version: "1" });
   const [a, b] = InMemoryTransport.createLinkedPair();
   await server.connect(a);

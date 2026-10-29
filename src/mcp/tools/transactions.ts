@@ -3,6 +3,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { SettleUp } from "../../client/api.js";
+import { createLocalReads } from "../ledger.js";
 import { DATE, DATE_TIME, json, naming } from "../present.js";
 
 const GROUP = z.string().describe("Group name from list_groups");
@@ -13,7 +14,11 @@ const SHARES = z
     "Exact amounts for genuinely unequal shares, summing to the full expense amount. For equal splits use forWhom and let Settle Up round; do not encode rounding pennies as custom shares. Do not combine with forWhom.",
   );
 
-export function registerTransactionTools(server: McpServer, client: SettleUp): void {
+export function registerTransactionTools(
+  server: McpServer,
+  client: SettleUp,
+  reads: ReturnType<typeof createLocalReads> = createLocalReads(client),
+): void {
   /** Names are resolved against the group, because member ids mean nothing to a model. */
   const show = async (group: string, rows: Awaited<ReturnType<SettleUp["transactions"]>>) => {
     const name = naming(await client.group(group));
@@ -25,13 +30,17 @@ export function registerTransactionTools(server: McpServer, client: SettleUp): v
     {
       title: "Get one saved transaction",
       description:
-        "Fetch one transaction directly by ID with its payer and exact split; avoids downloading group history. record_expense already returns a verified row and needs no extra lookup.",
-      inputSchema: { group: GROUP, id: z.string().min(1) },
+        "Read one saved transaction from the persistent group ledger with explicit sync freshness. Pass fresh=true for API reconciliation. The initial snapshot loads the group history. record_expense already returns a verified row and needs no extra lookup.",
+      inputSchema: {
+        group: GROUP,
+        id: z.string().min(1),
+        fresh: z
+          .boolean()
+          .default(false)
+          .describe("Wait for API reconciliation; required for audits"),
+      },
     },
-    async ({ group, id }) =>
-      client.withFreshReads(async () =>
-        json({ transaction: (await show(group, [await client.transaction(group, id)]))[0] }),
-      ),
+    async ({ group, id, fresh }) => json(await reads.get(group, id, fresh)),
   );
 
   server.registerTool(
@@ -40,7 +49,7 @@ export function registerTransactionTools(server: McpServer, client: SettleUp): v
       title: "Search transactions",
       description:
         "Find transactions in a group, or get an id for editing or deleting. " +
-        "Every filter but the group is optional and they combine; newest first.",
+        "Filters combine; newest first. Returns a local snapshot with lastSyncedAt/stale/refreshing. Background reconciliation retains complete data on failure. Pass fresh=true for an API audit.",
       inputSchema: {
         group: GROUP,
         purpose: z.string().optional().describe("Case-insensitive substring of the description"),
@@ -50,17 +59,14 @@ export function registerTransactionTools(server: McpServer, client: SettleUp): v
         minAmount: z.number().optional(),
         maxAmount: z.number().optional(),
         limit: z.number().int().min(1).max(200).default(25),
+        fresh: z
+          .boolean()
+          .default(false)
+          .describe("Wait for API reconciliation; use for latest-state checks and audits"),
       },
     },
-    async ({ group, limit, ...query }) =>
-      client.withFreshReads(async () => {
-        const all = await client.transactions(group, query);
-        return json({
-          matched: all.length,
-          returned: Math.min(all.length, limit),
-          transactions: await show(group, all.slice(0, limit)),
-        });
-      }),
+    async ({ group, limit, fresh, ...query }) =>
+      json(await reads.search(group, query, limit, fresh)),
   );
 
   server.registerTool(

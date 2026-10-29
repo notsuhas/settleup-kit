@@ -1,21 +1,12 @@
 import { createHash } from "node:crypto";
-import {
-  closeSync,
-  fsyncSync,
-  mkdirSync,
-  openSync,
-  readFileSync,
-  renameSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
-import { join } from "node:path";
+import { openReceiptJournal } from "./receipt-journal.js";
 
 interface IState<I> {
   inputs: I[];
   fingerprint: string;
   ids: (string | null)[];
   pending: number[];
+  verified?: boolean;
 }
 
 export function createRecorder<I, O extends { id: string }>(config: {
@@ -43,36 +34,18 @@ export function createRecorder<I, O extends { id: string }>(config: {
 
   async function execute(receiptId: string, inputs: I[], fingerprint: string): Promise<O[]> {
     const directory = await config.directory(inputs);
-    mkdirSync(directory, { recursive: true, mode: 0o700 });
     const key = createHash("sha256").update(receiptId).digest("hex");
-    const path = join(directory, `${key}.json`);
-    const lock = join(directory, "writer.lock");
+    const journal = openReceiptJournal<IState<I>>(directory, key);
     try {
-      mkdirSync(lock, { mode: 0o700 });
-    } catch {
-      throw new Error("Receipt is locked by another process; reconcile before retrying");
-    }
-    try {
-      let state: IState<I>;
-      try {
-        state = JSON.parse(readFileSync(path, "utf8"));
-      } catch (error) {
-        if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-        state = { inputs, fingerprint, ids: inputs.map(() => null), pending: [] };
-      }
+      const state = journal.read() ?? {
+        inputs,
+        fingerprint,
+        ids: inputs.map(() => null),
+        pending: [],
+      };
       if (state.fingerprint !== fingerprint || state.ids.length !== inputs.length)
         throw new Error("Receipt ID has conflicting input");
-      const save = () => {
-        const temporary = `${path}.${process.pid}.tmp`;
-        writeFileSync(temporary, JSON.stringify(state), { mode: 0o600, flush: true });
-        renameSync(temporary, path);
-        const descriptor = openSync(directory, "r");
-        try {
-          fsyncSync(descriptor);
-        } finally {
-          closeSync(descriptor);
-        }
-      };
+      const save = () => journal.save(state);
       const select = (all: O[], input: I, index: number): O | undefined => {
         const candidates = all.filter(
           (row) => config.identity(row, input) || row.id === state.ids[index],
@@ -122,13 +95,16 @@ export function createRecorder<I, O extends { id: string }>(config: {
           ? [...before, ...written]
           : await config.list(inputs)
         : before;
-      return inputs.map((input, index) => {
+      const result = inputs.map((input, index) => {
         const row = select(final, input, index);
         if (!row) throw new Error("Receipt verification failed");
         return row;
       });
+      state.verified = true;
+      save();
+      return result;
     } finally {
-      rmSync(lock, { recursive: true });
+      journal.close();
     }
   }
 }

@@ -259,5 +259,17 @@ unequal amounts, while `forWhom` uses the app's normal equal split. Optional
 The private journal lives under the existing config directory. Reuse the same ID
 and identical inputs on retries. If a timed-out write is visible, it is reused.
 A missing uncertain write, edited or deleted indexed row, conflicting input or
-duplicate match stops without another write. After a process crash, reconcile
-the journal before an operator removes a stale `writer.lock`.
+duplicate match stops without another write. SQLite releases the writer lock
+after a process crash, but uncertain pending entries still require
+reconciliation before any retry. Legacy JSON receipts are imported on first use;
+stop old servers before upgrading. A legacy `writer.lock` blocks writes until an
+operator reconciles and removes it.
+
+## Persistent MCP reads
+
+MCP read tools now return local SQLite snapshots with explicit `sync` metadata.
+Pass `fresh: true` for an audit or latest upstream state. A stale read starts
+background reconciliation; receipt writes and verification always use fresh API
+reads. This reduces repeated provider calls without promising network latency.
+Node 22.13+ is required. See [MCP caching](docs/mcp.md) for migration, response
+shape changes, recovery and private-volume requirements.

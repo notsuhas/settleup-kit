@@ -6,3 +6,6 @@ dist/
 
 # Real credentials; .env.example is the template.
 .env
+
+*.sqlite
+*.sqlite-*

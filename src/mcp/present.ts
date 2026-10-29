@@ -61,6 +61,12 @@ export const describeMember = (m: Member) => ({
 
 export const INSTRUCTIONS = `Read and write shared expenses in a live Settle Up account.
 
+MCP read tools use persistent SQLite snapshots and include sync metadata. Treat
+lastSyncedAt as the as-of time. Pass fresh=true for audits, current balances and
+settlement decisions. Cached results are not independent write verification.
+Stale reads return immediately and trigger background reconciliation; writes
+invalidate snapshots, and receipt verification always reads upstream directly.
+
 For new receipts prefer record_expense: it checks duplicates and returns the saved,
 independently verified full bill and exact split in one call. Keep a stable receiptId.
 After verified=true, do not repeat search_transactions. Reuse loaded schemas and

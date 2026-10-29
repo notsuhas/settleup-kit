@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.5.0
+
+### Minor Changes
+
+- Serve MCP reads from durable SQLite snapshots with explicit freshness metadata
+  and fresh audit overrides. Preserve complete snapshots across restarts,
+  reconcile edits and deletions, invalidate after all writes, and recover
+  receipt locks after process death without replaying uncertain writes. Disable
+  automatic retries of uncertain financial mutations.
+
+  BREAKING CHANGE: Node 22.13+ is required. MCP reference lists now return a
+  named array plus sync metadata, and read tools default to local snapshots;
+  pass fresh=true for current upstream state. Stop older receipt writers before
+  upgrading.
+
 ## 0.4.2
 
 ### Patch Changes
