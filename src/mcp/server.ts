@@ -42,6 +42,7 @@ export function createMcpServer(options: ILedgerOptions = {}): McpServer {
     try {
       await close();
     } finally {
+      await ledger?.drain();
       ledger?.close();
     }
   };

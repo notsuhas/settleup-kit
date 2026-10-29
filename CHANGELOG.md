@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.1
+
+### Patch Changes
+
+- Finish in-flight ledger reconciliation before request teardown closes SQLite,
+  so stateless HTTP reads persist background refreshes after returning their
+  cached response.
+
 ## 0.5.0
 
 ### Minor Changes
