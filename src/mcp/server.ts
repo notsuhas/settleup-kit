@@ -27,6 +27,20 @@ const { version: packageVersion } = createRequire(import.meta.url)(
 ) as { version: string };
 
 export function createMcpServer(options: ILedgerOptions = {}): McpServer {
+  const runtime = createMcpRuntime(options);
+  const server = runtime.createServer();
+  const close = server.close.bind(server);
+  server.close = async () => {
+    try {
+      await close();
+    } finally {
+      await runtime.close();
+    }
+  };
+  return server;
+}
+
+export function createMcpRuntime(options: ILedgerOptions = {}) {
   const ledger: Ledger | undefined = createLedger(options);
   const client: SettleUp = observeWrites(
     createClient({
@@ -36,21 +50,22 @@ export function createMcpServer(options: ILedgerOptions = {}): McpServer {
     ledger,
   );
 
+  return {
+    createServer: () => buildMcpServer(client, ledger),
+    close: async () => {
+      await ledger?.drain();
+      ledger?.close();
+    },
+  };
+}
+
+function buildMcpServer(client: SettleUp, ledger: Ledger | undefined): McpServer {
   const server = new McpServer(
     { name: "settleup", version: packageVersion },
     { instructions: INSTRUCTIONS },
   );
 
   const reads = createLocalReads(client, ledger);
-  const close = server.close.bind(server);
-  server.close = async () => {
-    try {
-      await close();
-    } finally {
-      await ledger?.drain();
-      ledger?.close();
-    }
-  };
   if (ledger)
     server.registerTool(
       "ledger_status",
