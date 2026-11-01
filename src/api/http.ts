@@ -28,6 +28,8 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const NETWORK_CODES = ["ECONNRESET", "ETIMEDOUT", "EPIPE", "ENOTFOUND", "EAI_AGAIN"];
 
 function isNetworkError(err: unknown): boolean {
+  const name = String((err as { name?: string })?.name ?? "");
+  if (name === "TimeoutError" || name === "AbortError") return true;
   if (err instanceof TypeError) return true;
   const code = String((err as { code?: string })?.code ?? "");
   const causeCode = String((err as { cause?: { code?: string } })?.cause?.code ?? "");

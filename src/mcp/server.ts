@@ -9,6 +9,7 @@
  * data with it and cannot be walked back.
  */
 
+import { createRequire } from "node:module";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { SettleUp } from "../client/api.js";
 import { createClient } from "../client/index.js";
@@ -21,6 +22,10 @@ import { registerReferenceTools } from "./tools/reference.js";
 import { registerStructureTools, structureAllowed } from "./tools/structure.js";
 import { registerTransactionTools } from "./tools/transactions.js";
 
+const { version: packageVersion } = createRequire(import.meta.url)(
+  "@notsuhas/settleup-kit/package.json",
+) as { version: string };
+
 export function createMcpServer(options: ILedgerOptions = {}): McpServer {
   const ledger: Ledger | undefined = createLedger(options);
   const client: SettleUp = observeWrites(
@@ -32,7 +37,7 @@ export function createMcpServer(options: ILedgerOptions = {}): McpServer {
   );
 
   const server = new McpServer(
-    { name: "settleup", version: "0.1.0" },
+    { name: "settleup", version: packageVersion },
     { instructions: INSTRUCTIONS },
   );
 
