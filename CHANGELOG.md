@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.2
+
+### Patch Changes
+
+- 8a3e660: Isolate concurrent HTTP transports while sharing the client and
+  SQLite ledger, drain active requests and background refreshes on shutdown,
+  retry GET timeouts without retrying uncertain writes, report the package
+  version, and preserve the original SQLite transaction error.
+
 ## 0.5.1
 
 ### Patch Changes

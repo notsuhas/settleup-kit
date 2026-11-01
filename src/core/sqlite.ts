@@ -31,7 +31,11 @@ export function sqlTransaction<T>(db: DatabaseSync, operation: () => T): T {
     db.exec("COMMIT");
     return result;
   } catch (error) {
-    db.exec("ROLLBACK");
+    try {
+      db.exec("ROLLBACK");
+    } catch {
+      // Prefer the failure that made us roll back.
+    }
     throw error;
   }
 }
